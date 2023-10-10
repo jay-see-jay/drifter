@@ -71,3 +71,14 @@ class GmailThread:
         self.snippet = snippet
         self.historyId = history_id
         self.messages = messages
+
+
+class GmailThreadsListResponse:
+    def __init__(self,
+                 threads: List[GmailThread],
+                 next_page_token: str,
+                 result_estimate_size: int,
+                 ) -> None:
+        self.threads = threads
+        self.nextPageToken = next_page_token
+        self.resultEstimateSize = result_estimate_size

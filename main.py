@@ -7,9 +7,18 @@ from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
+from stubs.gmail import GmailThreadsListResponse
 
 # If modifying these scopes, delete the file token.json.
 SCOPES = ['https://www.googleapis.com/auth/gmail.readonly']
+
+
+def get_gmail_threads_response(response: dict) -> GmailThreadsListResponse:
+    return GmailThreadsListResponse(
+        threads=response.get('threads'),
+        next_page_token=response.get('nextPageToken'),
+        result_estimate_size=response.get('resultEstimateSize'),
+    )
 
 
 def main():
@@ -38,9 +47,9 @@ def main():
         # Call the Gmail API
         service = build('gmail', 'v1', credentials=creds)
         results = service.users().threads().list(userId='me', maxResults=1).execute()
-        threads = results.get('threads', [])
+        threads = get_gmail_threads_response(results)
 
-        print(threads)
+        print(threads.threads)
 
     except HttpError as error:
         # TODO(developer) - Handle errors from gmail API.
