@@ -4,6 +4,7 @@ import base64
 import os
 import openai
 
+from dotenv import load_dotenv
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
@@ -13,6 +14,8 @@ from stubs.gmail import GmailThread, GmailMessagePart, GmailMessagePartBody, Gma
 
 # If modifying these scopes, delete the file token.json.
 SCOPES = ['https://www.googleapis.com/auth/gmail.readonly']
+
+load_dotenv()
 
 # #### ##
 # OPEN AI
@@ -157,6 +160,16 @@ def parse_message_part(message_part: GmailMessagePart, body: List[str]) -> None:
             body.append(decoded_data)
 
 
+my_email = os.getenv('MY_EMAIL')
+
+
+def check_for_my_email(email: str) -> str:
+    if email.find(my_email) >= 0:
+        return 'me'
+    else:
+        return email
+
+
 def parse_message_headers(message_part: GmailMessagePart):
     # TODO: Try to extract pure email address only
     headers = message_part.headers
@@ -164,9 +177,9 @@ def parse_message_headers(message_part: GmailMessagePart):
     email_from = ''
     for header in headers:
         if header.name == 'To':
-            email_to = header.value
+            email_to = check_for_my_email(header.value)
         elif header.name == 'From':
-            email_from = header.value
+            email_from = check_for_my_email(header.value)
 
     return {
         'from': email_from,
