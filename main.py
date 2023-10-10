@@ -100,17 +100,36 @@ def decode_body(body) -> str:
     return decode_bytes(body['data'])
 
 
-def parse_message_part(message_part):
+def parse_message_part(message_part, body: List[str]) -> None:
     if is_container_mime_message_part(message_part):
         child_message_parts = message_part.get('parts', [])
         for child_part in child_message_parts:
-            parse_message_part(child_part)
+            parse_message_part(child_part, body)
     else:
         message_body = message_part.get('body')
         mime_type = message_part.get('mimeType')
         if body_has_data(message_body) and mime_type == 'text/plain':
             decoded_data = decode_body(message_body)
-            print(decoded_data)
+            body.append(decoded_data)
+
+
+def parse_message_headers(message_part):
+    # TODO: Try to extract pure email address only
+    headers = message_part.get('headers', [])
+    email_to = ''
+    email_from = ''
+    for header in headers:
+        header_name = header['name']
+        header_value = header['value']
+        if header_name == 'To':
+            email_to = header_value
+        elif header_name == 'From':
+            email_from = header_value
+
+    return {
+        'from': email_from,
+        'to': email_to,
+    }
 
 
 def parse_thread(thread_id):
@@ -119,7 +138,11 @@ def parse_thread(thread_id):
     for message in thread.messages:
         print(f"Message: {count}")
         message_part = message.get('payload')
-        parse_message_part(message_part)
+        message_headers = parse_message_headers(message_part)
+        print('message_headers', message_headers)
+        message_body_list: List[str] = []
+        parse_message_part(message_part, message_body_list)
+        message_body = ''.join(message_body_list)
         count += 1
 
 
