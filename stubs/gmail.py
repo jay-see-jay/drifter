@@ -28,13 +28,15 @@ class GmailMessagePart:
                  mime_type: str,
                  filename: str,
                  headers: List[GmailHeader],
-                 body: List[GmailMessagePartBody],
+                 body: GmailMessagePartBody,
+                 parts: List['GmailMessagePart'],
                  ) -> None:
         self.partId = part_id
         self.mimeType = mime_type
         self.filename = filename
         self.headers = headers
         self.body = body
+        self.parts = parts
 
 
 class GmailMessage:
