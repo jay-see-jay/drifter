@@ -1,7 +1,6 @@
-from __future__ import print_function
-
 import base64
-import os.path
+import os
+import openai
 
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
@@ -13,6 +12,10 @@ from stubs.gmail import GmailThreadsListResponse
 # If modifying these scopes, delete the file token.json.
 SCOPES = ['https://www.googleapis.com/auth/gmail.readonly']
 
+# Configure openai
+openai.organization = os.getenv('OPENAI_ORG_ID')
+openai.api_key = os.getenv('OPENAI_API_KEY')
+
 
 def get_gmail_threads_response(response: dict) -> GmailThreadsListResponse:
     return GmailThreadsListResponse(
@@ -22,10 +25,14 @@ def get_gmail_threads_response(response: dict) -> GmailThreadsListResponse:
     )
 
 
+def decode_bytes(data):
+    try:
+        return base64.urlsafe_b64decode(data).decode('utf-8')
+    except Exception as e:
+        print(f"An error occurred while decoding: {e}")
+
+
 def main():
-    """Shows basic usage of the Gmail API.
-    Lists the user's Gmail labels.
-    """
     creds = None
     # The file token.json stores the user's access and refresh tokens, and is
     # created automatically when the authorization flow completes for the first
@@ -51,19 +58,22 @@ def main():
 
         for thread in threads_response.threads:
             tdata = service.users().threads().get(userId='me', id=thread['id']).execute()
-            for message in tdata['messages']:
-                message_parts = message['payload']['parts']
-                for part in message_parts:
-
-                    def decode_bytes(data):
-                        try:
-                            return base64.urlsafe_b64decode(data).decode('utf-8')
-                        except Exception as e:
-                            print(f"An error occurred while decoding: {e}")
-
-                    decoded_part = decode_bytes(part['body']['data'])
-
-                    print(decoded_part)
+            messages = tdata['messages']
+            for message in messages:
+                payload = message.get('payload')
+                body = payload.get('body')
+                parts = payload.get('parts')
+                if body and body.get('size', 0) > 0:
+                    data = body.get('data')
+                    decoded_data = decode_bytes(data)
+                    # print(decoded_data)
+                elif parts:
+                    for part in parts:
+                        body = part.get('body')
+                        if body and body.get('size', 0) > 0:
+                            data = body.get('data')
+                            decoded_data = decode_bytes(data)
+                            # print(decoded_data)
 
     except HttpError as error:
         # TODO(developer) - Handle errors from gmail API.
