@@ -75,7 +75,7 @@ class GmailThread:
 
 class GmailThreadsListResponse:
     def __init__(self,
-                 threads: List[GmailThread],
+                 threads: List['GmailThread'],
                  next_page_token: str,
                  result_estimate_size: int,
                  ) -> None:

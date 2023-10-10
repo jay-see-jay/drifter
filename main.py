@@ -1,5 +1,6 @@
 from __future__ import print_function
 
+import base64
 import os.path
 
 from google.auth.transport.requests import Request
@@ -44,12 +45,25 @@ def main():
             token.write(creds.to_json())
 
     try:
-        # Call the Gmail API
         service = build('gmail', 'v1', credentials=creds)
         results = service.users().threads().list(userId='me', maxResults=1).execute()
-        threads = get_gmail_threads_response(results)
+        threads_response = get_gmail_threads_response(results)
 
-        print(threads.threads)
+        for thread in threads_response.threads:
+            tdata = service.users().threads().get(userId='me', id=thread['id']).execute()
+            for message in tdata['messages']:
+                message_parts = message['payload']['parts']
+                for part in message_parts:
+
+                    def decode_bytes(data):
+                        try:
+                            return base64.urlsafe_b64decode(data).decode('utf-8')
+                        except Exception as e:
+                            print(f"An error occurred while decoding: {e}")
+
+                    decoded_part = decode_bytes(part['body']['data'])
+
+                    print(decoded_part)
 
     except HttpError as error:
         # TODO(developer) - Handle errors from gmail API.
