@@ -1,3 +1,4 @@
+import json
 from typing import List
 
 import base64
@@ -11,6 +12,7 @@ from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 from stubs.gmail import GmailThread, GmailMessagePart, GmailMessagePartBody, GmailMessage, GmailHeader
+from stubs.openai import ChatCompletion, ChatCompletionChoices, ChatCompletionMessage
 
 # If modifying these scopes, delete the file token.json.
 SCOPES = ['https://www.googleapis.com/auth/gmail.readonly']
@@ -26,7 +28,34 @@ load_dotenv()
 openai.api_key = os.getenv('OPENAI_API_KEY')
 
 
-def extract_message(message: str):
+def instantiate_choice_message(message: dict) -> ChatCompletionMessage:
+    return ChatCompletionMessage(
+        role=message.get('role'),
+        content=message.get('content'),
+    )
+
+
+def instantiate_completion(response: dict) -> ChatCompletion:
+    response_choices = response.get('choices', [])
+    response_choices = [
+        ChatCompletionChoices(
+            index=choice.get('index'),
+            message=instantiate_choice_message(choice.get('message')),
+            finish_reason=choice.get('finish_reason'),
+        )
+        for choice in response_choices
+    ]
+    return ChatCompletion(
+        id=response.get('id'),
+        object=response.get('object'),
+        created=response.get('created'),
+        model=response.get('model'),
+        choices=response_choices,
+        usage=response.get('usage')
+    )
+
+
+def extract_message(message: str) -> str:
     message = [
         {
             'role': 'user',
@@ -38,10 +67,15 @@ def extract_message(message: str):
         }
     ]
     try:
-        return openai.ChatCompletion.create(
+        response = openai.ChatCompletion.create(
             model="gpt-3.5-turbo",
             messages=message,
         )
+
+        completion = instantiate_completion(response)
+
+        return completion.choices[0].message.content
+
     except Exception as e:
         print(f'Issue with converting conversation to json object: {e}')
 
@@ -190,7 +224,16 @@ def check_for_my_email(email: str) -> str:
         return email
 
 
-def parse_message_headers(message_part: GmailMessagePart):
+class MessageHeaders:
+    def __init__(self,
+                 email_from: str,
+                 email_to: str,
+                 ) -> None:
+        self.email_from = email_from
+        self.email_to = email_to
+
+
+def parse_message_headers(message_part: GmailMessagePart) -> MessageHeaders:
     # TODO: Try to extract pure email address only
     headers = message_part.headers
     email_to = ''
@@ -201,28 +244,42 @@ def parse_message_headers(message_part: GmailMessagePart):
         elif header.name == 'From':
             email_from = check_for_my_email(header.value)
 
-    return {
-        'from': email_from,
-        'to': email_to,
-    }
+    return MessageHeaders(email_from, email_to)
+
+
+class Message:
+    def __init__(self,
+                 index: int,
+                 headers: MessageHeaders,
+                 body: str,
+                 ):
+        self.index = index
+        self.headers = headers
+        self.body = body
 
 
 def parse_thread(thread_id):
     thread = get_gmail_thread(thread_id)
-    count = 1
+    count = 0
+    messages: List[Message] = []
     for message in thread.messages:
-        message_details = f'Message Index: {count}\n'
         message_part = message.payload
+
         message_headers = parse_message_headers(message_part)
-        message_details += f'Message From: {message_headers.get("from")}\nMessage To: {message_headers.get("to")}\n'
+
         message_body_list: List[str] = []
         parse_message_part(message_part, message_body_list)
         message_body = ''.join(message_body_list)
-        message_details += f'Message Body:\n{message_body}'
-        conversation = extract_message(message_body)
-        # TODO: Turn conversation into array with relevant information then submit to Open AI for a draft
-        print(conversation)
+        message_body = extract_message(message_body)
+
+        messages.append(Message(
+            index=count,
+            headers=message_headers,
+            body=message_body
+        ))
         count += 1
+
+    print([json.dumps(vars(message), default=lambda x: x.__dict__) for message in messages])
 
 
 # ####
