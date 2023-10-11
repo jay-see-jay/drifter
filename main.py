@@ -19,6 +19,15 @@ SCOPES = ['https://www.googleapis.com/auth/gmail.readonly']
 
 load_dotenv()
 
+
+# #########
+# UTILITIES
+# #########
+
+def print_object(obj: object) -> None:
+    print(json.dumps(vars(obj), default=lambda x: x.__dict__))
+
+
 # #### ##
 # OPEN AI
 # #### ##
@@ -56,12 +65,12 @@ def instantiate_completion(response: dict) -> ChatCompletion:
 
 
 def extract_message(message: str) -> str:
+    prompt = 'Please extract only the new message from the email below, removing any quotes from earlier in the chain:'
     message = [
         {
             'role': 'user',
             'content': f"""
-                Can you extract just the new message from the email below,
-                removing anything quoted from earlier in the chain?
+                {prompt}
                 {message}
             """
         }
@@ -78,6 +87,61 @@ def extract_message(message: str) -> str:
 
     except Exception as e:
         print(f'Issue with converting conversation to json object: {e}')
+
+
+class MessageHeaders:
+    def __init__(self,
+                 email_from: str,
+                 email_to: str,
+                 ) -> None:
+        self.email_from = email_from
+        self.email_to = email_to
+
+
+class Message:
+    def __init__(self,
+                 index: int,
+                 headers: MessageHeaders,
+                 body: str,
+                 ):
+        self.index = index
+        self.headers = headers
+        self.body = body
+
+
+def get_draft_reply(conversation: List[Message]) -> str:
+    messages = [
+        {
+            'role': 'system',
+            'content': """
+                You are managing my email inbox for me and drafting replies to new emails.
+                Each response should only contain the content of the message to send, and nothing else.
+                Please don't indicate that you are an AI in anyway. Everything you draft will be checked
+                by me before it is sent.
+            """
+        }
+    ]
+    for message in conversation:
+        role = 'assistant' if message.headers.email_from == 'me' else 'user'
+        content = message.body
+        messages.append({
+            'role': role,
+            'content': content,
+        })
+
+    print('messages', messages)
+    try:
+        response = openai.ChatCompletion.create(
+            model="gpt-3.5-turbo",
+            messages=messages,
+        )
+
+        completion = instantiate_completion(response)
+
+        return completion.choices[0].message.content
+
+    except Exception as e:
+        print(f'Issue getting a draft reply to the conversation: {e}')
 
 
 # #####
@@ -224,15 +288,6 @@ def check_for_my_email(email: str) -> str:
         return email
 
 
-class MessageHeaders:
-    def __init__(self,
-                 email_from: str,
-                 email_to: str,
-                 ) -> None:
-        self.email_from = email_from
-        self.email_to = email_to
-
-
 def parse_message_headers(message_part: GmailMessagePart) -> MessageHeaders:
     # TODO: Try to extract pure email address only
     headers = message_part.headers
@@ -245,17 +300,6 @@ def parse_message_headers(message_part: GmailMessagePart) -> MessageHeaders:
             email_from = check_for_my_email(header.value)
 
     return MessageHeaders(email_from, email_to)
-
-
-class Message:
-    def __init__(self,
-                 index: int,
-                 headers: MessageHeaders,
-                 body: str,
-                 ):
-        self.index = index
-        self.headers = headers
-        self.body = body
 
 
 def parse_thread(thread_id):
@@ -279,7 +323,7 @@ def parse_thread(thread_id):
         ))
         count += 1
 
-    print([json.dumps(vars(message), default=lambda x: x.__dict__) for message in messages])
+    draft_reply = get_draft_reply(messages)
 
 
 # ####
