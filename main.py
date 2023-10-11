@@ -22,8 +22,28 @@ load_dotenv()
 # #### ##
 
 # Configure openai
-openai.organization = os.getenv('OPENAI_ORG_ID')
+# openai.organization = os.getenv('OPENAI_ORG_ID')
 openai.api_key = os.getenv('OPENAI_API_KEY')
+
+
+def extract_message(message: str):
+    message = [
+        {
+            'role': 'user',
+            'content': f"""
+                Can you extract just the new message from the email below,
+                removing anything quoted from earlier in the chain?
+                {message}
+            """
+        }
+    ]
+    try:
+        return openai.ChatCompletion.create(
+            model="gpt-3.5-turbo",
+            messages=message,
+        )
+    except Exception as e:
+        print(f'Issue with converting conversation to json object: {e}')
 
 
 # #####
@@ -191,16 +211,23 @@ def parse_thread(thread_id):
     thread = get_gmail_thread(thread_id)
     count = 1
     for message in thread.messages:
-        print(f"Message: {count}")
+        message_details = f'Message Index: {count}\n'
         message_part = message.payload
         message_headers = parse_message_headers(message_part)
-        print('message_headers', message_headers)
+        message_details += f'Message From: {message_headers.get("from")}\nMessage To: {message_headers.get("to")}\n'
         message_body_list: List[str] = []
         parse_message_part(message_part, message_body_list)
         message_body = ''.join(message_body_list)
-        print('message_body', message_body)
+        message_details += f'Message Body:\n{message_body}'
+        conversation = extract_message(message_body)
+        # TODO: Turn conversation into array with relevant information then submit to Open AI for a draft
+        print(conversation)
         count += 1
 
+
+# ####
+# MAIN
+# ####
 
 def main():
     thread_ids = get_gmail_thread_ids()
