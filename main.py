@@ -97,9 +97,11 @@ class MessageHeaders:
     def __init__(self,
                  email_from: str,
                  email_to: str,
+                 subject: str,
                  ) -> None:
         self.email_from = email_from
         self.email_to = email_to
+        self.subject = subject
 
 
 class Message:
@@ -244,21 +246,21 @@ def get_gmail_thread(thread_id: str) -> GmailThread:
         print(f"Failed to get thread from Gmail: {e}")
 
 
-def create_gmail_draft(draft: str, recipient: str):
+def create_gmail_draft(draft: str, recipient: str, thread_id: str):
     message = EmailMessage()
 
     message.set_content(draft)
 
     message['To'] = recipient
     message['From'] = my_email
-    message['Subject'] = 'A first draft'
 
     # encoded message
     encoded_message = base64.urlsafe_b64encode(message.as_bytes()).decode()
 
     create_message = {
         'message': {
-            'raw': encoded_message
+            'threadId': thread_id,
+            'raw': encoded_message,
         }
     }
 
@@ -322,13 +324,16 @@ def parse_message_headers(message_part: GmailMessagePart) -> MessageHeaders:
     headers = message_part.headers
     email_to = ''
     email_from = ''
+    subject = ''
     for header in headers:
         if header.name == 'To':
             email_to = check_for_my_email(header.value)
         elif header.name == 'From':
             email_from = check_for_my_email(header.value)
+        elif header.name == 'Subject':
+            subject = header.value
 
-    return MessageHeaders(email_from, email_to)
+    return MessageHeaders(email_from, email_to, subject)
 
 
 def parse_thread(thread_id):
@@ -353,8 +358,9 @@ def parse_thread(thread_id):
         count += 1
 
     draft_reply = get_draft_reply(messages)
+
     recipient = messages[-1].headers.email_from
-    create_gmail_draft(draft_reply, recipient)
+    create_gmail_draft(draft_reply, recipient, thread_id)
 
 
 # ####
