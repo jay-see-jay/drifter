@@ -1,5 +1,6 @@
 import json
 from typing import List
+from email.message import EmailMessage
 
 import base64
 import os
@@ -15,7 +16,10 @@ from stubs.gmail import GmailThread, GmailMessagePart, GmailMessagePartBody, Gma
 from stubs.openai import ChatCompletion, ChatCompletionChoices, ChatCompletionMessage
 
 # If modifying these scopes, delete the file token.json.
-SCOPES = ['https://www.googleapis.com/auth/gmail.readonly']
+SCOPES = [
+    'https://www.googleapis.com/auth/gmail.readonly',
+    'https://www.googleapis.com/auth/gmail.compose',
+]
 
 load_dotenv()
 
@@ -129,7 +133,6 @@ def get_draft_reply(conversation: List[Message]) -> str:
             'content': content,
         })
 
-    print('messages', messages)
     try:
         response = openai.ChatCompletion.create(
             model="gpt-3.5-turbo",
@@ -241,6 +244,32 @@ def get_gmail_thread(thread_id: str) -> GmailThread:
         print(f"Failed to get thread from Gmail: {e}")
 
 
+def create_gmail_draft(draft: str, recipient: str):
+    message = EmailMessage()
+
+    message.set_content(draft)
+
+    message['To'] = recipient
+    message['From'] = my_email
+    message['Subject'] = 'A first draft'
+
+    # encoded message
+    encoded_message = base64.urlsafe_b64encode(message.as_bytes()).decode()
+
+    create_message = {
+        'message': {
+            'raw': encoded_message
+        }
+    }
+
+    try:
+        draft = gmail_service.users().drafts().create(userId="me", body=create_message).execute()
+        print(F'Draft id: {draft["id"]}\nDraft message: {draft["message"]}')
+
+    except HttpError as e:
+        print(f'Failed to create draft in Gmail: {e}')
+
+
 # ##### #######
 # EMAIL PARSING
 # ##### #######
@@ -324,6 +353,8 @@ def parse_thread(thread_id):
         count += 1
 
     draft_reply = get_draft_reply(messages)
+    recipient = messages[-1].headers.email_from
+    create_gmail_draft(draft_reply, recipient)
 
 
 # ####
