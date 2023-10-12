@@ -4,4 +4,7 @@
 old_main.py
 old_requirements.txt
 stubs/
+services/
+get_history.py
+setup_gmail_watch.py
 deploy.sh
