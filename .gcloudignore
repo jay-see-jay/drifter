@@ -1,10 +1,11 @@
 #!include:.gitignore
 .git
 .gitignore
-old_main.py
-old_requirements.txt
+
 stubs/
 services/
+create_draft.py
 get_history.py
 setup_gmail_watch.py
+
 deploy.sh

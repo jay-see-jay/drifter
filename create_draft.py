@@ -15,13 +15,9 @@ from stubs.openai import ChatCompletion, ChatCompletionChoices, ChatCompletionMe
 
 load_dotenv()
 
-
 # #########
 # UTILITIES
 # #########
-
-def print_object(obj: object) -> None:
-    print(json.dumps(vars(obj), default=lambda x: x.__dict__))
 
 
 # #### ##
