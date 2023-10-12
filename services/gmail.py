@@ -6,6 +6,7 @@ from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
+from googleapiclient.errors import HttpError
 
 load_dotenv()
 
@@ -44,24 +45,31 @@ def get_gmail_credentials() -> dict:
     }
 
 
-# Configure Gmail service
-def get_gmail_service():
-    # creds = None
-    # TODO: Replace logic that checked for a token.json file
-    token_dict = get_user_auth()
-    creds = Credentials.from_authorized_user_info(token_dict, SCOPES)
+class Gmail:
+    def __init__(self):
+        # creds = None
+        # TODO: Replace logic that checked for a token.json file
+        token_dict = get_user_auth()
+        creds = Credentials.from_authorized_user_info(token_dict, SCOPES)
 
-    # If there are no (valid) credentials available, let the user log in.
-    if not creds or not creds.valid:
-        if creds and creds.expired and creds.refresh_token:
-            creds.refresh(Request())
-        else:
-            creds_dict = get_gmail_credentials()
-            flow = InstalledAppFlow.from_client_config(
-                creds_dict, SCOPES)
-            creds = flow.run_local_server()
-        # Save the credentials for the next run
-        with open('token.json', 'w') as token:
-            token.write(creds.to_json())
+        # If there are no (valid) credentials available, let the user log in.
+        if not creds or not creds.valid:
+            if creds and creds.expired and creds.refresh_token:
+                creds.refresh(Request())
+            else:
+                creds_dict = get_gmail_credentials()
+                flow = InstalledAppFlow.from_client_config(
+                    creds_dict, SCOPES)
+                creds = flow.run_local_server()
+            # Save the credentials for the next run
+            with open('token.json', 'w') as token:
+                token.write(creds.to_json())
 
-    return build('gmail', 'v1', credentials=creds)
+        self.api = build('gmail', 'v1', credentials=creds)
+
+    def get_history(self, start_history_id='125125'):
+        try:
+            response = self.api.users().history().list(userId='me', startHistoryId=start_history_id).execute()
+            return response
+        except HttpError as e:
+            print(f'Failed to get history of mailbox changes: {e}')

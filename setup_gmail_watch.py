@@ -1,10 +1,10 @@
 import os
 
-from services.gmail import get_gmail_service
+from services.gmail import Gmail
 
 from googleapiclient.errors import HttpError
 
-gmail_service = get_gmail_service()
+gmail_service = Gmail().api
 
 try:
     cloud_project = os.getenv('GOOGLE_PROJECT_ID')

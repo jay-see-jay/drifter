@@ -1,11 +1,6 @@
-from services.gmail import get_gmail_service
+from services.gmail import Gmail
 
-from googleapiclient.errors import HttpError
+gmail_service = Gmail()
 
-gmail_service = get_gmail_service()
-
-try:
-    response = gmail_service.users().history().list(userId='me', startHistoryId='125125').execute()
-    print(response)
-except HttpError as e:
-    print(f'Failed to get a list of changes to mailbox: {e}')
+response = gmail_service.get_history()
+print(response)

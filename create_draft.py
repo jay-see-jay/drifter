@@ -9,7 +9,7 @@ import openai
 from dotenv import load_dotenv
 from googleapiclient.errors import HttpError
 
-from services.gmail import get_gmail_service
+from services.gmail import Gmail
 from stubs.gmail import GmailThread, GmailMessagePart, GmailMessagePartBody, GmailMessage, GmailHeader
 from stubs.openai import ChatCompletion, ChatCompletionChoices, ChatCompletionMessage
 
@@ -140,7 +140,7 @@ def get_draft_reply(conversation: List[Message]) -> str:
 # GMAIL
 # #####
 
-gmail_service = get_gmail_service()
+gmail_service = Gmail().api
 
 
 # Get list of threads from Gmail
