@@ -156,21 +156,46 @@ def get_draft_reply(conversation: List[Message]) -> str:
 # GMAIL
 # #####
 
+def get_user_auth() -> dict:
+    return {
+        "token": os.getenv('TEMP_TOKEN'),
+        "refresh_token": os.getenv('TEMP_REFRESH_TOKEN'),
+        "token_uri": os.getenv('GOOGLE_TOKEN_URI'),
+        "client_id": os.getenv('GOOGLE_CLIENT_ID'),
+        "client_secret": os.getenv('GOOGLE_CLIENT_SECRET'),
+        "scopes": SCOPES,
+        "expiry": os.getenv('TEMP_TOKEN_EXPIRY')
+    }
+
+
+def get_gmail_credentials() -> dict:
+    return {
+        "web": {
+            "client_id": os.getenv('GOOGLE_CLIENT_ID'),
+            "project_id": os.getenv('GOOGLE_PROJECT_ID'),
+            "auth_uri": os.getenv('GOOGLE_AUTH_URI'),
+            "token_uri": os.getenv('GOOGLE_TOKEN_URI'),
+            "auth_provider_x509_cert_url": os.getenv('GOOGLE_AUTH_PROVIDER'),
+            "client_secret": os.getenv('GOOGLE_CLIENT_SECRET')
+        }
+    }
+
+
 # Configure Gmail service
 def get_gmail_service():
     creds = None
-    # The file token.json stores the user's access and refresh tokens, and is
-    # created automatically when the authorization flow completes for the first
-    # time.
-    if os.path.exists('token.json'):
-        creds = Credentials.from_authorized_user_file('token.json', SCOPES)
+    # TODO: Replace logic that checked for a token.json file
+    token_dict = get_user_auth()
+    creds = Credentials.from_authorized_user_info(token_dict, SCOPES)
+
     # If there are no (valid) credentials available, let the user log in.
     if not creds or not creds.valid:
         if creds and creds.expired and creds.refresh_token:
             creds.refresh(Request())
         else:
-            flow = InstalledAppFlow.from_client_secrets_file(
-                'credentials.json', SCOPES)
+            creds_dict = get_gmail_credentials()
+            flow = InstalledAppFlow.from_client_config(
+                creds_dict, SCOPES)
             creds = flow.run_local_server()
         # Save the credentials for the next run
         with open('token.json', 'w') as token:
