@@ -1,3 +1,7 @@
 #!include:.gitignore
 .git
 .gitignore
+old_main.py
+old_requirements.txt
+stubs/
+deploy.sh

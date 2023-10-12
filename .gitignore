@@ -4,3 +4,4 @@ token.json
 __pycache__/
 .env*
 .editorconfig
+.DS_Store
