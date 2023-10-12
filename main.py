@@ -12,6 +12,9 @@ from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
+from cloudevents.http import CloudEvent
+import functions_framework
+
 from stubs.gmail import GmailThread, GmailMessagePart, GmailMessagePartBody, GmailMessage, GmailHeader
 from stubs.openai import ChatCompletion, ChatCompletionChoices, ChatCompletionMessage
 
@@ -361,6 +364,15 @@ def parse_thread(thread_id):
 
     recipient = messages[-1].headers.email_from
     create_gmail_draft(draft_reply, recipient, thread_id)
+
+
+# Triggered from a message on a Cloud Pub/Sub topic.
+@functions_framework.cloud_event
+def subscribe(cloud_event: CloudEvent) -> None:
+    # Print out the data from Pub/Sub, to prove that it worked
+    print(
+        "Hello, " + base64.b64decode(cloud_event.data["message"]["data"]).decode() + "!"
+    )
 
 
 # ####
