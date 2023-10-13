@@ -6,6 +6,29 @@ class WatchSubscriptionResponse(TypedDict):
     expiration: str
 
 
+class MessageData(TypedDict):
+    emailAddress: str
+    historyId: str
+
+
+class DictWithId(TypedDict):
+    id: str
+
+
+class History(DictWithId, total=False):
+    messages: dict
+    messagesAdded: dict
+    messagesDeleted: dict
+    labelsAdded: dict
+    labelsRemoved: dict
+
+
+class HistoryResponse(TypedDict):
+    history: List[History]
+    nextPageToken: str
+    historyId: str
+
+
 class GmailMessagePartBody:
     def __init__(self,
                  attachment_id: str,
@@ -43,27 +66,19 @@ class GmailMessagePart:
         self.parts = parts
 
 
-class GmailMessage:
-    def __init__(self,
-                 id: str,
-                 thread_id: str,
-                 label_ids: List[str],
-                 snippet: str,
-                 history_id: str,
-                 internal_date: str,
-                 payload: GmailMessagePart,
-                 size_estimate: int,
-                 raw: str,
-                 ) -> None:
-        self.id = id
-        self.threadId = thread_id
-        self.labelIds = label_ids
-        self.snippet = snippet
-        self.historyId = history_id
-        self.internalDate = internal_date
-        self.payload = payload
-        self.sizeEstimate = size_estimate
-        self.raw = raw
+class GmailMessageTruncated(TypedDict):
+    id: str
+    threadId: str
+
+
+class GmailMessage(GmailMessageTruncated):
+    label_ids: List[str]
+    snippet: str
+    history_id: str
+    internal_date: str
+    payload: GmailMessagePart
+    size_estimate: int
+    raw: str
 
 
 class GmailThread:

@@ -2,7 +2,7 @@ import json
 
 
 def get_value_or_fail(data: dict, key: str) -> str:
-    value = data.get('key')
+    value = data.get(key)
     if not value:
         raise Exception(f'Could not extract {key}')
     else:

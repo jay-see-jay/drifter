@@ -1,5 +1,3 @@
-import json
-from typing import List
 from email.message import EmailMessage
 
 import base64
@@ -10,8 +8,8 @@ from dotenv import load_dotenv
 from googleapiclient.errors import HttpError
 
 from services.gmail import Gmail
-from stubs.gmail import GmailThread, GmailMessagePart, GmailMessagePartBody, GmailMessage, GmailHeader
-from stubs.openai import ChatCompletion, ChatCompletionChoices, ChatCompletionMessage
+from stubs.gmail import *
+from stubs.openai import *
 
 load_dotenv()
 
@@ -207,7 +205,7 @@ def get_gmail_thread(thread_id: str) -> GmailThread:
             messages=messages
         )
     except HttpError as e:
-        print(f"Failed to get thread from Gmail: {e}")
+        print(f'Failed to get thread from Gmail: {e}')
 
 
 def create_gmail_draft(draft: str, recipient: str, thread_id: str):
@@ -230,7 +228,7 @@ def create_gmail_draft(draft: str, recipient: str, thread_id: str):
 
     try:
         draft = gmail_service.users().drafts().create(userId="me", body=create_message).execute()
-        print(F'Draft id: {draft["id"]}\nDraft message: {draft["message"]}')
+        print(f'Draft id: {draft["id"]}\nDraft message: {draft["message"]}')
 
     except HttpError as e:
         print(f'Failed to create draft in Gmail: {e}')
@@ -253,7 +251,7 @@ def decode_bytes(data: bytes) -> str:
     try:
         return base64.urlsafe_b64decode(data).decode('utf-8')
     except Exception as e:
-        print(f"An error occurred while decoding: {e}")
+        print(f'An error occurred while decoding: {e}')
 
 
 def decode_body(body: GmailMessagePartBody) -> str:
@@ -305,7 +303,7 @@ def parse_thread(thread_id):
     count = 0
     messages: List[Message] = []
     for message in thread.messages:
-        message_part = message.payload
+        message_part = message['payload']
 
         message_headers = parse_message_headers(message_part)
 

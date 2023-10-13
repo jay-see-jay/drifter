@@ -1,4 +1,6 @@
 import os
+import base64
+import json
 
 from dotenv import load_dotenv
 
@@ -7,7 +9,9 @@ from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
+from cloudevents.http import CloudEvent
 
+from utilities.dict_utils import get_value_or_fail
 from stubs.gmail import *
 
 load_dotenv()
@@ -22,25 +26,25 @@ class Gmail:
     @staticmethod
     def _get_user_auth() -> dict:
         return {
-            "token": os.getenv('TEMP_TOKEN'),
-            "refresh_token": os.getenv('TEMP_REFRESH_TOKEN'),
-            "token_uri": os.getenv('GOOGLE_TOKEN_URI'),
-            "client_id": os.getenv('GOOGLE_CLIENT_ID'),
-            "client_secret": os.getenv('GOOGLE_CLIENT_SECRET'),
-            "scopes": SCOPES,
-            "expiry": os.getenv('TEMP_TOKEN_EXPIRY')
+            'token': os.getenv('TEMP_TOKEN'),
+            'refresh_token': os.getenv('TEMP_REFRESH_TOKEN'),
+            'token_uri': os.getenv('GOOGLE_TOKEN_URI'),
+            'client_id': os.getenv('GOOGLE_CLIENT_ID'),
+            'client_secret': os.getenv('GOOGLE_CLIENT_SECRET'),
+            'scopes': SCOPES,
+            'expiry': os.getenv('TEMP_TOKEN_EXPIRY')
         }
 
     @staticmethod
     def _get_credentials() -> dict:
         return {
-            "web": {
-                "client_id": os.getenv('GOOGLE_CLIENT_ID'),
-                "project_id": os.getenv('GOOGLE_PROJECT_ID'),
-                "auth_uri": os.getenv('GOOGLE_AUTH_URI'),
-                "token_uri": os.getenv('GOOGLE_TOKEN_URI'),
-                "auth_provider_x509_cert_url": os.getenv('GOOGLE_AUTH_PROVIDER'),
-                "client_secret": os.getenv('GOOGLE_CLIENT_SECRET')
+            'web': {
+                'client_id': os.getenv('GOOGLE_CLIENT_ID'),
+                'project_id': os.getenv('GOOGLE_PROJECT_ID'),
+                'auth_uri': os.getenv('GOOGLE_AUTH_URI'),
+                'token_uri': os.getenv('GOOGLE_TOKEN_URI'),
+                'auth_provider_x509_cert_url': os.getenv('GOOGLE_AUTH_PROVIDER'),
+                'client_secret': os.getenv('GOOGLE_CLIENT_SECRET')
             }
         }
 
@@ -65,9 +69,28 @@ class Gmail:
 
         self.api = build('gmail', 'v1', credentials=creds)
 
-    def get_history(self, start_history_id='125125'):
+    def get_history(self, start_history_id='125125') -> set[str]:
         try:
-            return self.api.users().history().list(userId='me', startHistoryId=start_history_id).execute()
+            response = self.api.users() \
+                .history().list(userId='me', startHistoryId=start_history_id).execute()  # type: HistoryResponse
+            # TODO: Update latest historyId in database: response['historyId']
+            # TODO: Get next page if there is a nextPageToken: response['nextPageToken']
+            history_list = response.get('history')
+
+            messages: List[GmailMessageTruncated] = []
+
+            if history_list:
+                for item in history_list:
+                    item_messages = item.get('messages', [])
+                    messages.extend(item_messages)
+
+            affected_thread_ids: set[str] = set()
+
+            for message in messages:
+                affected_thread_ids.add(message['threadId'])
+
+            return affected_thread_ids
+
         except HttpError as e:
             print(f'Failed to get history of mailbox changes: {e}')
 
@@ -84,3 +107,13 @@ class Gmail:
 
     def unwatch_mailbox(self):
         return self.api.users().stop(userId='me').execute()
+
+    @staticmethod
+    def decode_cloud_event(cloud_event: CloudEvent) -> MessageData:
+        cloud_event_data = base64.b64decode(cloud_event.data['message']['data']).decode()
+        cloud_event_data = json.loads(cloud_event_data)
+
+        return {
+            'emailAddress': get_value_or_fail(cloud_event_data, 'emailAddress'),
+            'historyId': get_value_or_fail(cloud_event_data, 'historyId'),
+        }
