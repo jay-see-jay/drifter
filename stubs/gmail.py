@@ -1,4 +1,9 @@
-from typing import List
+from typing import List, TypedDict
+
+
+class WatchSubscriptionResponse(TypedDict):
+    historyId: str
+    expiration: str
 
 
 class GmailMessagePartBody:
@@ -21,7 +26,6 @@ class GmailHeader:
         self.value = value
 
 
-# Can a class reference itself? https://developers.google.com/gmail/api/reference/rest/v1/users.messages#Message.MessagePart
 class GmailMessagePart:
     def __init__(self,
                  part_id: str,
