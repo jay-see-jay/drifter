@@ -8,8 +8,10 @@ def handle_watch_gmail_messages(cloud_event: CloudEvent) -> None:
 
     gmail_service = Gmail()
     changed_thread_ids = gmail_service.get_changed_thread_ids(cloud_event_data["historyId"])
-    # TODO: changed_thread_ids now contains a set of thread_ids to sync with the database,
-    #       determine the ones to reply to and create the replies.
+
+    for thread_id in changed_thread_ids:
+        thread = gmail_service.get_thread_by_id(thread_id)
+        print(thread)
 
 
 if __name__ == "__main__":

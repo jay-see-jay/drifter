@@ -69,7 +69,7 @@ class Gmail:
 
         self.api = build('gmail', 'v1', credentials=creds)
 
-    def get_history(self, start_history_id='125125') -> set[str]:
+    def get_changed_thread_ids(self, start_history_id='125125') -> set[str]:
         try:
             response = self.api.users() \
                 .history().list(userId='me', startHistoryId=start_history_id).execute()  # type: HistoryResponse
@@ -109,7 +109,7 @@ class Gmail:
         return self.api.users().stop(userId='me').execute()
 
     @staticmethod
-    def decode_cloud_event(cloud_event: CloudEvent) -> MessageData:
+    def decode_cloud_event(cloud_event: CloudEvent) -> SubscriptionMessageData:
         cloud_event_data = base64.b64decode(cloud_event.data['message']['data']).decode()
         cloud_event_data = json.loads(cloud_event_data)
 
@@ -117,3 +117,10 @@ class Gmail:
             'emailAddress': get_value_or_fail(cloud_event_data, 'emailAddress'),
             'historyId': get_value_or_fail(cloud_event_data, 'historyId'),
         }
+
+    def get_thread_by_id(self, thread_id: str) -> GmailThread:
+        try:
+            return self.api.users().threads().get(userId='me', id=thread_id).execute()
+
+        except HttpError as e:
+            print(f'Failed to get thread from Gmail: {e}')

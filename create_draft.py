@@ -138,13 +138,13 @@ def get_draft_reply(conversation: List[Message]) -> str:
 # GMAIL
 # #####
 
-gmail_service = Gmail().api
+gmail_service = Gmail()
 
 
 # Get list of threads from Gmail
 def get_gmail_thread_ids() -> List[str]:
     try:
-        response = gmail_service.users().threads().list(userId='me', maxResults=1).execute()
+        response = gmail_service.api.users().threads().list(userId='me', maxResults=1).execute()
         threads = response.get('threads', [])
         return [thread['id'] for thread in threads]
     except HttpError as e:
@@ -157,8 +157,8 @@ def instantiate_message_part(message_part: dict) -> GmailMessagePart:
     body = message_part.get('body')
 
     return GmailMessagePart(
-        part_id=message_part.get('partId'),
-        mime_type=message_part.get('mimeType'),
+        partId=message_part.get('partId'),
+        mimeType=message_part.get('mimeType'),
         filename=message_part.get('filename'),
         headers=[
             GmailHeader(
@@ -167,7 +167,7 @@ def instantiate_message_part(message_part: dict) -> GmailMessagePart:
             ) for header in headers
         ],
         body=GmailMessagePartBody(
-            attachment_id=body.get('attachmentId'),
+            attachmentId=body.get('attachmentId'),
             size=body.get('size'),
             data=body.get('data'),
         ),
@@ -178,13 +178,13 @@ def instantiate_message_part(message_part: dict) -> GmailMessagePart:
 def instantiate_message(message: dict) -> GmailMessage:
     return GmailMessage(
         id=message.get('id'),
-        thread_id=message.get('threadId'),
-        label_ids=message.get('labelIds'),
+        threadId=message.get('threadId'),
+        labelIds=message.get('labelIds'),
         snippet=message.get('snippet'),
-        history_id=message.get('historyId'),
-        internal_date=message.get('internalDate'),
+        historyId=message.get('historyId'),
+        internalDate=message.get('internalDate'),
         payload=instantiate_message_part(message.get('payload')),
-        size_estimate=message.get('sizeEstimate'),
+        sizeEstimate=message.get('sizeEstimate'),
         raw=message.get('raw')
     )
 
@@ -192,20 +192,6 @@ def instantiate_message(message: dict) -> GmailMessage:
 def instantiate_gmail_message_list(response: dict) -> List[GmailMessage]:
     messages = response.get('messages', [])
     return [instantiate_message(message) for message in messages]
-
-
-def get_gmail_thread(thread_id: str) -> GmailThread:
-    try:
-        response = gmail_service.users().threads().get(userId='me', id=thread_id).execute()
-        messages = instantiate_gmail_message_list(response)
-        return GmailThread(
-            id=response.get('id'),
-            snippet=response.get('snippet'),
-            history_id=response.get('historyId'),
-            messages=messages
-        )
-    except HttpError as e:
-        print(f'Failed to get thread from Gmail: {e}')
 
 
 def create_gmail_draft(draft: str, recipient: str, thread_id: str):
@@ -227,7 +213,7 @@ def create_gmail_draft(draft: str, recipient: str, thread_id: str):
     }
 
     try:
-        draft = gmail_service.users().drafts().create(userId="me", body=create_message).execute()
+        draft = gmail_service.api().users().drafts().create(userId="me", body=create_message).execute()
         print(f'Draft id: {draft["id"]}\nDraft message: {draft["message"]}')
 
     except HttpError as e:
@@ -239,11 +225,11 @@ def create_gmail_draft(draft: str, recipient: str, thread_id: str):
 # ##### #######
 
 def body_has_data(body: GmailMessagePartBody) -> bool:
-    return body and body.size > 0
+    return body and body['size'] > 0
 
 
 def is_container_mime_message_part(payload: GmailMessagePart) -> bool:
-    mime_type = payload.mimeType
+    mime_type = payload['mimeType']
     return mime_type and mime_type.startswith('multipart/')
 
 
@@ -255,17 +241,17 @@ def decode_bytes(data: bytes) -> str:
 
 
 def decode_body(body: GmailMessagePartBody) -> str:
-    return decode_bytes(body.data)
+    return decode_bytes(body['data'])
 
 
 def parse_message_part(message_part: GmailMessagePart, body: List[str]) -> None:
     if is_container_mime_message_part(message_part):
-        child_message_parts = message_part.parts
+        child_message_parts = message_part['parts']
         for child_part in child_message_parts:
             parse_message_part(child_part, body)
     else:
-        message_body = message_part.body
-        mime_type = message_part.mimeType
+        message_body = message_part['body']
+        mime_type = message_part['mimeType']
         if body_has_data(message_body) and mime_type == 'text/plain':
             decoded_data = decode_body(message_body)
             body.append(decoded_data)
@@ -283,26 +269,26 @@ def check_for_my_email(email: str) -> str:
 
 def parse_message_headers(message_part: GmailMessagePart) -> MessageHeaders:
     # TODO: Try to extract pure email address only
-    headers = message_part.headers
+    headers = message_part['headers']
     email_to = ''
     email_from = ''
     subject = ''
     for header in headers:
-        if header.name == 'To':
-            email_to = check_for_my_email(header.value)
-        elif header.name == 'From':
-            email_from = check_for_my_email(header.value)
-        elif header.name == 'Subject':
-            subject = header.value
+        if header['name'] == 'To':
+            email_to = check_for_my_email(header['value'])
+        elif header['name'] == 'From':
+            email_from = check_for_my_email(header['value'])
+        elif header['name'] == 'Subject':
+            subject = header['value']
 
     return MessageHeaders(email_from, email_to, subject)
 
 
 def parse_thread(thread_id):
-    thread = get_gmail_thread(thread_id)
+    thread = gmail_service.get_thread_by_id(thread_id)
     count = 0
     messages: List[Message] = []
-    for message in thread.messages:
+    for message in thread['messages']:
         message_part = message['payload']
 
         message_headers = parse_message_headers(message_part)
