@@ -1,17 +1,46 @@
+from typing import List
+
 from cloudevents.http import CloudEvent
 
 from services.gmail import Gmail
+from services.openai import OpenAI
+
+from stubs.internal import ParsedMessage
 
 
 def handle_watch_gmail_messages(cloud_event: CloudEvent) -> None:
     cloud_event_data = Gmail.decode_cloud_event(cloud_event)
 
-    gmail_service = Gmail()
-    changed_thread_ids = gmail_service.get_changed_thread_ids(cloud_event_data["historyId"])
+    gmail = Gmail()
+    openai = OpenAI()
+    changed_thread_ids = gmail.get_changed_thread_ids(cloud_event_data["historyId"])
 
     for thread_id in changed_thread_ids:
-        thread = gmail_service.get_thread_by_id(thread_id)
-        print(thread)
+        thread = gmail.get_thread_by_id(thread_id)
+
+        count = 0
+        messages: List[ParsedMessage] = []
+        for message in thread['messages']:
+            message_part = message['payload']
+
+            message_headers = gmail.parse_message_headers(message_part)
+
+            message_body_list: List[str] = []
+            gmail.parse_message_part(message_part, message_body_list)
+            message_body = ''.join(message_body_list)
+            message_body = openai.extract_message(message_body)
+
+            messages.append(ParsedMessage(
+                index=count,
+                headers=message_headers,
+                body=message_body
+            ))
+            count += 1
+
+            draft_reply = openai.get_draft_reply(messages)
+
+            recipient = messages[-1]['headers']['email_from']
+            gmail.create_draft(draft_reply, recipient, thread['id'])
 
 
 if __name__ == "__main__":

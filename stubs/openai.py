@@ -1,6 +1,13 @@
-from typing import Literal, List
+from typing import Literal, List, TypedDict
+from enum import Enum
 
 FinishReason = Literal['stop', 'length', 'content_filter', 'function_call']
+
+Role = Literal['system', 'user', 'assistant']
+
+
+class Model(Enum):
+    GPT3 = 'gpt-3.5-turbo'
 
 
 class OpenAIUsage:
@@ -14,38 +21,21 @@ class OpenAIUsage:
         self.total_tokens = total_tokens
 
 
-class ChatCompletionMessage:
-    def __init__(self,
-                 role: str,
-                 content: str,
-                 ):
-        self.role = role
-        self.content = content
+class ChatCompletionMessage(TypedDict):
+    role: Role
+    content: str
 
 
-class ChatCompletionChoices:
-    def __init__(self,
-                 index: int,
-                 message: ChatCompletionMessage,
-                 finish_reason: FinishReason,
-                 ):
-        self.index = index
-        self.message = message
-        self.finish_reason = finish_reason
+class ChatCompletionChoices(TypedDict):
+    index: int
+    message: ChatCompletionMessage
+    finish_reason: FinishReason
 
 
-class ChatCompletion:
-    def __init__(self,
-                 id: str,
-                 object: str,
-                 created: int,
-                 model: str,
-                 choices: List['ChatCompletionChoices'],
-                 usage: OpenAIUsage,
-                 ):
-        self.id = id
-        self.object = object
-        self.created = created
-        self.model = model
-        self.choices = choices
-        self.usage = usage
+class ChatCompletionResponse(TypedDict):
+    id: str
+    object: str
+    created: int
+    model: str
+    choices: List[ChatCompletionChoices]
+    usage: OpenAIUsage
