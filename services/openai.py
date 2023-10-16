@@ -16,7 +16,7 @@ class OpenAI:
 
     def chat(self, messages: List[ChatCompletionMessage]) -> str:
         response = self.api.ChatCompletion.create(
-            model=Model.GPT3,
+            model=Model.GPT3.value,
             messages=messages,
         )  # type: ChatCompletionResponse
 
@@ -40,6 +40,7 @@ class OpenAI:
             print(f'Issue with extracting the new message from the conversation: {e}')
 
     def get_draft_reply(self, conversation: List[ParsedMessage]) -> str:
+        # TODO: Add first name(s) of recipient to prompt so OpenAI doens't use placeholders
         system_prompt = 'You are managing my email inbox for me and drafting replies to new emails. ' \
                         'Each response should only contain the content of the message to send, and nothing else. ' \
                         'Please don\'t indicate that you are an AI in anyway. Everything you draft will be checked ' \

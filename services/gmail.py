@@ -198,8 +198,9 @@ class Gmail:
         }
 
         try:
-            draft = self.api().users().drafts().create(userId="me", body=create_message).execute()
-            print(f'Draft id: {draft["id"]}\nDraft message: {draft["message"]}')
+            # draft = self.api().users().drafts().create(userId="me", body=create_message).execute()
+            # print(f'Draft id: {draft["id"]}\nDraft message: {draft["message"]}')\
+            print('Adding draft to Gmail disabled for now.')
 
         except HttpError as e:
             print(f'Failed to create draft in Gmail: {e}')

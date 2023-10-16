@@ -35,12 +35,12 @@ def handle_watch_gmail_messages(cloud_event: CloudEvent) -> None:
                 headers=message_headers,
                 body=message_body
             ))
+
             count += 1
 
-            draft_reply = openai.get_draft_reply(messages)
-
-            recipient = messages[-1]['headers']['email_from']
-            gmail.create_draft(draft_reply, recipient, thread['id'])
+        draft_reply = openai.get_draft_reply(messages)
+        recipient = messages[-1]['headers']['email_from']
+        gmail.create_draft(draft_reply, recipient, thread['id'])
 
 
 if __name__ == "__main__":
