@@ -5,4 +5,4 @@ google-auth-httplib2==0.1.1
 openai==0.28.1
 python-dotenv==1.0.0
 functions-framework==3.4.0
-mysqlclient==2.2.0
+mysql-connector-python==8.1.0
