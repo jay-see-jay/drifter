@@ -45,7 +45,7 @@ class UserRepo:
 
         self.db.close()
 
-    def get(self, email: int):
+    def get(self, email: str):
         query = """
             SELECT email, is_active, created_at, access_token, refresh_token, token_expires_at
             FROM users

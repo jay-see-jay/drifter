@@ -25,10 +25,11 @@ SCOPES = [
 
 
 class Gmail:
-    def __init__(self):
-        # creds = None
-        # TODO: Replace logic that checked for a token.json file
-        token_dict = self._get_user_auth()
+    def __init__(self,
+                 user: User
+                 ):
+        self.user = user
+        token_dict = self._get_user_auth(user)
         creds = Credentials.from_authorized_user_info(token_dict, SCOPES)
 
         # If there are no (valid) credentials available, let the user log in.
@@ -47,10 +48,10 @@ class Gmail:
         self.api = build('gmail', 'v1', credentials=creds)
 
     @staticmethod
-    def _get_user_auth() -> dict:
+    def _get_user_auth(user: User) -> dict:
         return {
-            'token': os.getenv('TEMP_TOKEN'),
-            'refresh_token': os.getenv('TEMP_REFRESH_TOKEN'),
+            'token': user.access_token,
+            'refresh_token': user.refresh_token,
             'token_uri': os.getenv('GOOGLE_TOKEN_URI'),
             'client_id': os.getenv('GOOGLE_CLIENT_ID'),
             'client_secret': os.getenv('GOOGLE_CLIENT_SECRET'),

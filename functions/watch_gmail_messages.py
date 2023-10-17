@@ -4,6 +4,7 @@ from cloudevents.http import CloudEvent
 
 from services.gmail import Gmail
 from services.openai import OpenAI
+from repositories.user import UserRepo
 
 from stubs.internal import ParsedMessage
 
@@ -11,9 +12,13 @@ from stubs.internal import ParsedMessage
 def handle_watch_gmail_messages(cloud_event: CloudEvent) -> None:
     cloud_event_data = Gmail.decode_cloud_event(cloud_event)
 
-    gmail = Gmail()
+    email = cloud_event_data['emailAddress']
+    history_id = cloud_event_data["historyId"]
+
+    user = UserRepo().get(email)
+    gmail = Gmail(user)
     openai = OpenAI()
-    changed_thread_ids = gmail.get_changed_thread_ids(cloud_event_data["historyId"])
+    changed_thread_ids = gmail.get_changed_thread_ids(history_id)
 
     for thread_id in changed_thread_ids:
         thread = gmail.get_thread_by_id(thread_id)
