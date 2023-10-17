@@ -6,3 +6,4 @@ openai==0.28.1
 python-dotenv==1.0.0
 functions-framework==3.4.0
 mysql-connector-python==8.1.0
+cryptography==41.0.4
