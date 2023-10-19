@@ -9,3 +9,4 @@ get_history.py
 setup_gmail_watch.py
 
 deploy.sh
+migrate.py

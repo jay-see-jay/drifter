@@ -1,5 +1,7 @@
-from typing import TypedDict
+from typing import TypedDict, Literal
 from datetime import datetime
+
+Env = Literal['production', 'development']
 
 
 class ParsedMessageHeaders(TypedDict):
@@ -27,3 +29,13 @@ class User:
         self.access_token = access_token
         self.refresh_token = refresh_token
         self.token_expires_at = token_expires_at
+
+
+class Migration:
+    def __init__(self,
+                 name: str,
+                 date: datetime,
+                 ):
+        self.name = name
+        self.date = date
+        self.id = f'{date.strftime("%Y-%m-%d")}_{name}'

@@ -3,15 +3,23 @@ import mysql.connector
 
 from dotenv import load_dotenv
 
+from stubs.internal import Env
+
 load_dotenv()
 
 
 class Database:
-    def __init__(self):
+    def __init__(self,
+                 env: Env = 'development'
+                 ):
+        is_production = env == 'production'
+
+        username = os.getenv('DATABASE_USERNAME_PROD') if is_production else os.getenv('DB_USER_DEV_ADMIN')
+        password = os.getenv('DATABASE_PASSWORD_PROD') if is_production else os.getenv('DB_PASS_DEV_ADMIN')
         self.connection = mysql.connector.connect(
             host=os.getenv("DATABASE_HOST"),
-            user=os.getenv("DATABASE_USERNAME"),
-            passwd=os.getenv("DATABASE_PASSWORD"),
+            user=username,
+            passwd=password,
             db=os.getenv("DATABASE"),
             autocommit=True,
             ssl_verify_identity=True,
