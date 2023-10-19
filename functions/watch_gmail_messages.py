@@ -13,7 +13,7 @@ def handle_watch_gmail_messages(cloud_event: CloudEvent) -> None:
     cloud_event_data = Gmail.decode_cloud_event(cloud_event)
 
     email = cloud_event_data['emailAddress']
-    history_id = cloud_event_data["historyId"]
+    history_id = cloud_event_data['historyId']
 
     user = UserRepo().get(email)
     gmail = Gmail(user)
