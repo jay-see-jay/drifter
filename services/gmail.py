@@ -5,6 +5,7 @@ import json
 from dotenv import load_dotenv
 from email.message import EmailMessage
 from google.auth.transport.requests import Request
+from google.auth.exceptions import RefreshError
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
@@ -13,6 +14,8 @@ from cloudevents.http import CloudEvent
 
 from utilities.dict_utils import get_value_or_fail
 from utilities.email_utils import *
+from models.user import User
+from repositories.user import UserRepo
 from stubs.gmail import *
 from stubs.internal import *
 
@@ -29,21 +32,15 @@ class Gmail:
                  user: User
                  ):
         self.user = user
+        self.user_repo = UserRepo()
         token_dict = self._get_user_auth(user)
         creds = Credentials.from_authorized_user_info(token_dict, SCOPES)
 
         # If there are no (valid) credentials available, let the user log in.
         if not creds or not creds.valid:
-            if creds and creds.expired and creds.refresh_token:
-                creds.refresh(Request())
-            else:
-                creds_dict = self._get_credentials()
-                flow = InstalledAppFlow.from_client_config(
-                    creds_dict, SCOPES)
-                creds = flow.run_local_server()
-            # Save the credentials for the next run
-            with open('token.json', 'w') as token:
-                token.write(creds.to_json())
+            success = self._refresh_credentials(creds)
+            if not success:
+                creds = self._request_authorization()
 
         self.api = build('gmail', 'v1', credentials=creds)
 
@@ -72,6 +69,29 @@ class Gmail:
             }
         }
 
+    def _refresh_credentials(self, creds: Credentials, ) -> bool:
+        if creds and creds.expired and creds.refresh_token:
+            try:
+                creds.refresh(Request())
+                return True
+            except RefreshError as e:
+                error_description = e.args[1].get('error_description')
+                print(f'Could not refresh credentials: {error_description}')
+                print('Deleting user credentials')
+                self.user_repo.remove_credentials(user=self.user)
+
+        return False
+
+    def _request_authorization(self) -> Credentials:
+        creds_dict = self._get_credentials()
+        flow = InstalledAppFlow.from_client_config(
+            creds_dict, SCOPES)
+
+        creds = flow.run_local_server(approval_prompt='force')
+        print('Saving new credentials')
+        self.user_repo.save_credentials(user=self.user, creds=creds)
+        return creds
+
     def watch_mailbox(self) -> WatchSubscriptionResponse:
         cloud_project = os.getenv('GOOGLE_PROJECT_ID')
         pubsub_topic = os.getenv('GOOGLE_PUBSUB_TOPIC')
@@ -85,6 +105,9 @@ class Gmail:
 
     def unwatch_mailbox(self):
         return self.api.users().stop(userId='me').execute()
+
+    def get_threads(self):
+        return self.api.users().threads().list(userId='me').execute()
 
     @staticmethod
     def decode_cloud_event(cloud_event: CloudEvent) -> SubscriptionMessageData:

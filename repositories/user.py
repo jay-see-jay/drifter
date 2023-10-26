@@ -2,9 +2,11 @@ import os
 
 from cryptography.fernet import Fernet
 from dotenv import load_dotenv
+from google.oauth2.credentials import Credentials
+from datetime import datetime
 
 from services.database import Database
-from stubs.internal import User
+from models.user import User
 
 load_dotenv()
 
@@ -18,7 +20,10 @@ class UserRepo:
     def encrypt(self, text: str):
         return self.f.encrypt(bytes(text, 'utf-8'))
 
-    def decrypt(self, text: bytes):
+    def decrypt(self, text: bytes | None):
+        if not text:
+            return text
+
         return self.f.decrypt(text).decode('utf-8')
 
     def create(self, new_user: User):
@@ -39,13 +44,11 @@ class UserRepo:
             new_user.is_active
         )
 
-        response = self.db.query(query, variables)
-
-        print(response)
+        self.db.query(query, variables)
 
         self.db.close()
 
-    def get(self, email: str):
+    def get(self, email: str) -> User:
         query = """
             SELECT email, is_active, created_at, access_token, refresh_token, token_expires_at
             FROM users
@@ -63,6 +66,42 @@ class UserRepo:
         )
         self.db.close()
         return user
+
+    def save_credentials(self, user: User, creds: Credentials) -> None:
+        encrypted_token = self.encrypt(creds.token)
+        encrypted_refresh_token = self.encrypt(creds.refresh_token) if creds.refresh_token else None
+        query = """
+            UPDATE users
+            SET
+                access_token = %s,
+                refresh_token = %s,
+                token_expires_at = %s
+            WHERE
+                email = %s
+        """
+        variables = (
+            encrypted_token,
+            encrypted_refresh_token,
+            creds.expiry,
+            user.email
+        )
+        self.db.query(query, variables)
+        self.db.close()
+        return
+
+    def remove_credentials(self, user: User) -> None:
+        query = """
+            UPDATE users
+            SET
+                access_token = NULL,
+                refresh_token = NULL,
+                token_expires_at = NULL
+            WHERE
+                email = %s
+        """
+        variables = (user.email,)
+        self.db.query(query, variables)
+        self.db.close()
 
     def delete(self, user_id: int):
         query = """
