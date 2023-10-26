@@ -32,5 +32,8 @@ class Database:
         self.connection.close()
 
     def query(self, query: str, variables: tuple):
-        self.cursor.execute(query, variables)
-        return self.cursor.fetchall()
+        try:
+            self.cursor.execute(query, variables)
+            return self.cursor.fetchall()
+        except Exception as e:
+            print(f'Failed to execute query: {e}')

@@ -35,7 +35,9 @@ class Migration:
     def __init__(self,
                  name: str,
                  date: datetime,
+                 completed_at: datetime | None,
                  ):
         self.name = name
         self.date = date
-        self.id = f'{date.strftime("%Y-%m-%d")}_{name}'
+        self.date_name = f'{date.strftime("%Y-%m-%d")}_{name}'
+        self.completed_at = completed_at
