@@ -31,9 +31,14 @@ class Database:
         self.cursor.close()
         self.connection.close()
 
+    def ensure_connection(self):
+        if not self.connection.is_connected():
+            self.cursor.close()
+            self.connection.reconnect()
+            self.cursor = self.connection.cursor(dictionary=True)
+
     def query(self, query: str, variables: tuple):
-        try:
-            self.cursor.execute(query, variables)
-            return self.cursor.fetchall()
-        except Exception as e:
-            print(f'Failed to execute query: {e}')
+        self.ensure_connection()
+
+        self.cursor.execute(query, variables)
+        return self.cursor.fetchall()

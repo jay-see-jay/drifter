@@ -22,7 +22,7 @@ date = datetime.strptime(date_string, "%Y-%m-%d")
 
 migration = Migration(name=name, date=date, completed_at=None)
 
-if not migration.id == migration_name:
+if not migration.date_name == migration_name:
     print(f"Migration name is not in the correct format: {migration_name}")
     sys.exit(1)
 
