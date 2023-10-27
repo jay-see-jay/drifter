@@ -50,7 +50,7 @@ class UserRepo:
 
     def get(self, email: str) -> User:
         query = """
-            SELECT email, is_active, created_at, access_token, refresh_token, token_expires_at
+            SELECT pk, email, is_active, created_at, access_token, refresh_token, token_expires_at
             FROM users
             WHERE email=%s
         """
@@ -58,6 +58,7 @@ class UserRepo:
         encrypted_access_token = response[0].get('access_token')
         encrypted_refresh_token = response[0].get('refresh_token')
         user = User(
+            pk=response[0].get('pk'),
             email=response[0].get('email'),
             is_active=response[0].get('is_active'),
             access_token=self.decrypt(encrypted_access_token),

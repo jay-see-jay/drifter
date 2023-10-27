@@ -106,8 +106,8 @@ class Gmail:
     def unwatch_mailbox(self):
         return self.api.users().stop(userId='me').execute()
 
-    def get_threads(self):
-        return self.api.users().threads().list(userId='me').execute()
+    def get_threads(self, next_page_token=None) -> GmailThreadsListResponse:
+        return self.api.users().threads().list(userId='me', pageToken=next_page_token, maxResults=50).execute()
 
     @staticmethod
     def decode_cloud_event(cloud_event: CloudEvent) -> SubscriptionMessageData:
@@ -143,6 +143,13 @@ class Gmail:
 
         except HttpError as e:
             print(f'Failed to get history of mailbox changes: {e}')
+
+    def get_threads_by_ids(self, thread_ids: List[str], callback):
+        batch = self.api.new_batch_http_request(callback)
+        for thread_id in thread_ids:
+            request = self.api.users().threads().get(userId='me', id=thread_id)
+            batch.add(request)
+        batch.execute()
 
     def get_thread_by_id(self, thread_id: str) -> GmailThread:
         try:
@@ -203,7 +210,8 @@ class Gmail:
     def decode_body(self, body: GmailMessagePartBody) -> str:
         return self.decode_bytes(body['data'])
 
-    def create_draft(self, draft: str, recipient: str, thread_id: str):
+    @staticmethod
+    def create_draft(draft: str, recipient: str, thread_id: str):
         message = EmailMessage()
 
         message.set_content(draft)

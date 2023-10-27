@@ -71,7 +71,7 @@ class GmailThread(TypedDict):
     messages: List[GmailMessage]
 
 
-class GmailThreadsListResponse:
+class GmailThreadsListResponse(TypedDict):
     threads: List[GmailThread]
     nextPageToken: str
-    resultEstimateSize: int
+    resultSizeEstimate: int
