@@ -106,8 +106,8 @@ class Gmail:
     def unwatch_mailbox(self):
         return self.api.users().stop(userId='me').execute()
 
-    def get_threads(self, next_page_token=None) -> GmailThreadsListResponse:
-        return self.api.users().threads().list(userId='me', pageToken=next_page_token, maxResults=50).execute()
+    def get_threads(self, next_page_token=None, count=50) -> GmailThreadsListResponse:
+        return self.api.users().threads().list(userId='me', pageToken=next_page_token, maxResults=count).execute()
 
     @staticmethod
     def decode_cloud_event(cloud_event: CloudEvent) -> SubscriptionMessageData:

@@ -61,12 +61,12 @@ class GmailMessage(GmailMessageTruncated):
     internalDate: str
     payload: GmailMessagePart
     sizeEstimate: int
-    raw: str
+    raw: str | None
 
 
 class GmailThread(TypedDict):
     id: str
-    snippet: str
+    snippet: str | None
     historyId: str
     messages: List[GmailMessage]
 
