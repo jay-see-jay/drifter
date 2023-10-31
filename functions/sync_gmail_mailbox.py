@@ -29,7 +29,7 @@ def handle_sync_gmail_mailbox(request):
     # Can maybe reply to this to explain batching requests to Gmail API?
     # https://stackoverflow.com/questions/26004335/get-multiple-threads-by-threadid-in-google-apps-scripts-gmailapp-class
     while True:
-        threads_list_response = gmail.get_threads(next_page_token=page_token, count=1)
+        threads_list_response = gmail.get_threads(next_page_token=page_token, count=5)
         thread_ids = [thread['id'] for thread in threads_list_response['threads']]
         gmail.get_threads_by_ids(thread_ids, process_thread_response)
         # next_page_token = threads_list_response.get('nextPageToken', None)
@@ -49,14 +49,14 @@ def handle_sync_gmail_mailbox(request):
     # (id, user_pk, message_id, mime_type, body_attachment_id, body_size, body_data, parent_message_part_id)
     message_part_values: Set[Tuple[str, int, str | None, str, str, str, int, str, str | None]] = set()
     # (message_part_id, name, value)
-    header_values: Set[Tuple[str, str, str]]
+    header_values: Set[Tuple[str, str, str]] = set()
 
     def process_message_part(
         message_part: GmailMessagePart,
         parent_message_id: str,
         parent_message_part_id: str = None,
     ):
-        message_part_id = message_part.get('id')
+        message_part_id = message_part.get('partId')
 
         headers = message_part.get('headers')  # type: List[GmailHeader]
         for header in headers:

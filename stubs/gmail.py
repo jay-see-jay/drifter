@@ -41,7 +41,7 @@ class GmailHeader(TypedDict):
 
 
 class GmailMessagePart(TypedDict):
-    partId: str
+    partId: str | None
     mimeType: str
     filename: str
     headers: List[GmailHeader]
