@@ -1,4 +1,4 @@
-from typing import List, TypedDict
+from typing import List, TypedDict, Literal, Optional
 
 
 class WatchSubscriptionResponse(TypedDict):
@@ -41,7 +41,7 @@ class GmailHeader(TypedDict):
 
 
 class GmailMessagePart(TypedDict):
-    partId: str | None
+    partId: Optional[str]
     mimeType: str
     filename: str
     headers: List[GmailHeader]
@@ -61,17 +61,71 @@ class GmailMessage(GmailMessageTruncated):
     internalDate: str
     payload: GmailMessagePart
     sizeEstimate: int
-    raw: str | None
+    raw: Optional[str]
 
 
-class GmailThread(TypedDict):
+class GmailThread:
+    def __init__(self,
+                 thread_id: str,
+                 history_id: str,
+                 messages: List[GmailMessage],
+                 snippet: Optional[str] = None,
+                 ):
+        self.thread_id = thread_id
+        self.snippet = snippet
+        self.history_id = history_id
+        self.messages = messages
+
+
+class GmailThreadDict(TypedDict):
     id: str
-    snippet: str | None
+    snippet: Optional[str]
     historyId: str
-    messages: List[GmailMessage]
 
 
 class GmailThreadsListResponse(TypedDict):
-    threads: List[GmailThread]
+    threads: List[GmailThreadDict]
     nextPageToken: str
     resultSizeEstimate: int
+
+
+MessageListVisibility = Literal['show', 'hide']
+LabelListVisibility = Literal['labelShow', 'labelShowIfUnread', 'labelHide']
+GmailLabelType = Literal['system', 'user']
+
+
+class GmailLabelColor:
+    def __init__(self,
+                 text_color: str = None,
+                 background_color: str = None,
+                 ):
+        self.text_color = text_color
+        self.background_color = background_color
+
+
+class GmailLabel:
+    def __init__(self,
+                 label_id: str,
+                 name: str,
+                 label_type: GmailLabelType,
+                 messages_total: int,
+                 messages_unread: int,
+                 threads_total: int,
+                 threads_unread: int,
+                 message_list_visibility: Optional[MessageListVisibility] = None,
+                 label_list_visibility: Optional[LabelListVisibility] = None,
+                 color: Optional[dict] = None,
+                 ):
+        self.label_id = label_id
+        self.name = name
+        self.message_list_visibility = message_list_visibility
+        self.label_list_visibility = label_list_visibility
+        self.label_type = label_type
+        self.messages_total = messages_total
+        self.messages_unread = messages_unread
+        self.threads_total = threads_total
+        self.threads_unread = threads_unread
+        if not color:
+            self.color = None
+        else:
+            self.color = GmailLabelColor(color.get('textColor'), color.get('backgroundColor'))

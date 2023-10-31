@@ -25,7 +25,7 @@ def handle_watch_gmail_messages(cloud_event: CloudEvent) -> None:
 
         count = 0
         messages: List[ParsedMessage] = []
-        for message in thread['messages']:
+        for message in thread.messages:
             message_part = message['payload']
 
             message_headers = gmail.parse_message_headers(message_part)
@@ -45,7 +45,7 @@ def handle_watch_gmail_messages(cloud_event: CloudEvent) -> None:
 
         draft_reply = openai.get_draft_reply(messages)
         recipient = messages[-1]['headers']['email_from']
-        gmail.create_draft(draft_reply, recipient, thread['id'])
+        gmail.create_draft(draft_reply, recipient, thread.id)
 
 
 if __name__ == "__main__":

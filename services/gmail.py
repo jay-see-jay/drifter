@@ -106,9 +106,6 @@ class Gmail:
     def unwatch_mailbox(self):
         return self.api.users().stop(userId='me').execute()
 
-    def get_threads(self, next_page_token=None, count=50) -> GmailThreadsListResponse:
-        return self.api.users().threads().list(userId='me', pageToken=next_page_token, maxResults=count).execute()
-
     @staticmethod
     def decode_cloud_event(cloud_event: CloudEvent) -> SubscriptionMessageData:
         cloud_event_data = base64.b64decode(cloud_event.data['message']['data']).decode()
@@ -118,6 +115,9 @@ class Gmail:
             'emailAddress': get_value_or_fail(cloud_event_data, 'emailAddress'),
             'historyId': get_value_or_fail(cloud_event_data, 'historyId'),
         }
+
+    def get_threads(self, next_page_token=None, count=50) -> GmailThreadsListResponse:
+        return self.api.users().threads().list(userId='me', pageToken=next_page_token, maxResults=count).execute()
 
     def get_changed_thread_ids(self, start_history_id='125125') -> set[str]:
         try:
@@ -153,10 +153,23 @@ class Gmail:
 
     def get_thread_by_id(self, thread_id: str) -> GmailThread:
         try:
-            return self.api.users().threads().get(userId='me', id=thread_id).execute()
+            response = self.api.users().threads().get(userId='me', id=thread_id).execute()
+            return GmailThread(
+                thread_id=response.get('id'),
+                history_id=response.get('historyId'),
+                messages=response.get('messages'),
+                snippet=response.get('snippet'),
+            )
 
         except HttpError as e:
             print(f'Failed to get thread from Gmail: {e}')
+
+    def get_labels(self, label_ids: List[str], callback):
+        batch = self.api.new_batch_http_request(callback)
+        for label_id in label_ids:
+            request = self.api.users().labels().get(userId='me', id=label_id)
+            batch.add(request)
+        batch.execute()
 
     @staticmethod
     def parse_message_headers(message_part: GmailMessagePart) -> ParsedMessageHeaders:
