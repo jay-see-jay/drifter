@@ -40,9 +40,13 @@ class GmailHeader:
     def __init__(self,
                  name: str,
                  value: str,
+                 message_id: str,
+                 message_part_id: Optional[str] = None,
                  ):
         self.name = name
         self.value = value
+        self.message_id = message_id
+        self.message_part_id = message_part_id
 
 
 class GmailMessagePart:
@@ -65,6 +69,8 @@ class GmailMessagePart:
             GmailHeader(
                 name=header.get('name'),
                 value=header.get('value'),
+                message_id=message_id,
+                message_part_id=part_id,
             )
             for header in headers
         ]
