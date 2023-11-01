@@ -9,6 +9,7 @@ from repositories.user import UserRepo
 from repositories.label import LabelRepo
 from repositories.thread import ThreadRepo
 from repositories.message import MessageRepo
+from repositories.message_part import MessagePartRepo
 from stubs.gmail import *
 
 load_dotenv()
@@ -48,41 +49,19 @@ def handle_sync_gmail_mailbox(request):
             break
 
     label_messages: Dict[str, Set[str]] = dict()
-    # (id, user_pk, message_id, mime_type, body_attachment_id, body_size, body_data, parent_message_part_id)
-    message_part_values: Set[Tuple[str, int, str | None, str, str, str, int, str, str | None]] = set()
-    # (message_part_id, name, value)
-    header_values: Set[Tuple[str, str, str]] = set()
+    message_parts: List[GmailMessagePart] = []
+    headers: List[GmailHeader] = []
 
     def process_message_part(
         message_part: GmailMessagePart,
         parent_message_id: str,
-        parent_message_part_id: str = None,
     ):
-        message_part_id = message_part.get('partId')
-
-        headers = message_part.get('headers')  # type: List[GmailHeader]
-        for header in headers:
-            header_values.add((
-                message_part_id,
-                header.get('name'),
-                header.get('value'),
-            ))
-
-        body = message_part.get('body')  # type: GmailMessagePartBody
-        message_part_values.add((
-            message_part_id,
-            user.pk,
-            parent_message_id,
-            message_part.get('mimeType'),
-            message_part.get('filename'),
-            body.get('attachmentId'),
-            body.get('size'),
-            body.get('data'),
-            parent_message_part_id,
-        ))
-        parts = message_part.get('parts', [])
-        for message_part in parts:
-            process_message_part(message_part, parent_message_id, message_part_id)
+        headers.extend(message_part.headers)
+        message_parts.append(message_part)
+        parts = message_part.parts
+        if parts:
+            for message_part in parts:
+                process_message_part(message_part, parent_message_id)
 
     messages: List[GmailMessage] = []
     for thread_id in threads:
@@ -133,7 +112,9 @@ def handle_sync_gmail_mailbox(request):
     # TODO [x] Add messages to db
     message_repo = MessageRepo()
     message_repo.create_many(messages, user)
-    # TODO [ ] Add message parts to db
+    # TODO [x] Add message parts to db
+    message_parts_repo = MessagePartRepo()
+    message_parts_repo.create_many(message_parts, user)
     # TODO [ ] Add headers to db
 
 

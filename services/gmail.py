@@ -181,7 +181,7 @@ class Gmail:
     @staticmethod
     def parse_message_headers(message_part: GmailMessagePart) -> ParsedMessageHeaders:
         # TODO: Try to extract pure email address only
-        headers = message_part['headers']
+        headers = message_part.headers
         email_to = ''
         email_from = ''
         subject = ''
@@ -201,12 +201,12 @@ class Gmail:
 
     def parse_message_part(self, message_part: GmailMessagePart, body: List[str]) -> None:
         if self.is_container_mime_message_part(message_part):
-            child_message_parts = message_part['parts']
+            child_message_parts = message_part.parts
             for child_part in child_message_parts:
                 self.parse_message_part(child_part, body)
         else:
-            message_body = message_part['body']
-            mime_type = message_part['mimeType']
+            message_body = message_part.body
+            mime_type = message_part.mime_type
             if self.body_has_data(message_body) and mime_type == 'text/plain':
                 decoded_data = self.decode_body(message_body)
                 body.append(decoded_data)
@@ -217,7 +217,7 @@ class Gmail:
 
     @staticmethod
     def is_container_mime_message_part(payload: GmailMessagePart) -> bool:
-        mime_type = payload['mimeType']
+        mime_type = payload.mime_type
         return mime_type and mime_type.startswith('multipart/')
 
     @staticmethod

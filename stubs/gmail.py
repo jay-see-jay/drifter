@@ -36,18 +36,55 @@ class GmailMessagePartBody(TypedDict):
     data: bytes
 
 
-class GmailHeader(TypedDict):
-    name: str
-    value: str
+class GmailHeader:
+    def __init__(self,
+                 name: str,
+                 value: str,
+                 ):
+        self.name = name
+        self.value = value
 
 
-class GmailMessagePart(TypedDict):
-    partId: Optional[str]
-    mimeType: str
-    filename: str
-    headers: List[GmailHeader]
-    body: GmailMessagePartBody
-    parts: List['GmailMessagePart']
+class GmailMessagePart:
+    def __init__(self,
+                 message_id: str,
+                 part_id: Optional[str],
+                 mime_type: str,
+                 filename: str,
+                 headers: List[dict],
+                 body: GmailMessagePartBody,
+                 parts: Optional[List[dict]],
+                 parent_part_id: Optional[str] = None,
+                 ):
+        self.message_id = message_id
+        self.part_id = part_id
+        self.parent_part_id = parent_part_id
+        self.mime_type = mime_type
+        self.filename = filename
+        self.headers = [
+            GmailHeader(
+                name=header.get('name'),
+                value=header.get('value'),
+            )
+            for header in headers
+        ]
+        self.body = body
+        if not parts:
+            self.parts = None
+        else:
+            self.parts = [
+                GmailMessagePart(
+                    message_id=message_id,
+                    part_id=part.get('partId'),
+                    mime_type=part.get('mimeType'),
+                    filename=part.get('filename'),
+                    headers=part.get('headers'),
+                    body=part.get('body'),
+                    parts=part.get('parts'),
+                    parent_part_id=part_id,
+                )
+                for part in parts
+            ]
 
 
 class GmailMessage:
@@ -58,7 +95,7 @@ class GmailMessage:
                  snippet: str,
                  history_id: str,
                  internal_date: str,
-                 payload: GmailMessagePart,
+                 payload: dict,
                  size_estimate: int,
                  ):
         self.message_id = message_id
@@ -67,7 +104,15 @@ class GmailMessage:
         self.snippet = snippet
         self.history_id = history_id
         self.internal_date = datetime.fromtimestamp(float(internal_date) / 1000)
-        self.payload = payload
+        self.payload = GmailMessagePart(
+            message_id=message_id,
+            part_id=payload.get('partId'),
+            mime_type=payload.get('mimeType'),
+            filename=payload.get('filename'),
+            headers=payload.get('headers'),
+            body=payload.get('body'),
+            parts=payload.get('parts'),
+        )
         self.size_estimate = size_estimate
 
 
