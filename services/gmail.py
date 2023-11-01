@@ -134,7 +134,7 @@ class Gmail:
             # TODO: Get next page if there is a nextPageToken: response['nextPageToken']
             history_list = response.get('history')
 
-            messages: List[GmailMessageTruncated] = []
+            messages = []
 
             if history_list:
                 for item in history_list:
@@ -144,7 +144,7 @@ class Gmail:
             affected_thread_ids: set[str] = set()
 
             for message in messages:
-                affected_thread_ids.add(message['threadId'])
+                affected_thread_ids.add(message.get('threadId'))
 
             return affected_thread_ids
 

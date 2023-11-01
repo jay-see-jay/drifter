@@ -1,4 +1,5 @@
 from typing import List, TypedDict, Literal, Optional
+from datetime import datetime
 
 
 class WatchSubscriptionResponse(TypedDict):
@@ -49,32 +50,50 @@ class GmailMessagePart(TypedDict):
     parts: List['GmailMessagePart']
 
 
-class GmailMessageTruncated(TypedDict):
-    id: str
-    threadId: str
-
-
-class GmailMessage(GmailMessageTruncated):
-    labelIds: List[str]
-    snippet: str
-    historyId: str
-    internalDate: str
-    payload: GmailMessagePart
-    sizeEstimate: int
-    raw: Optional[str]
+class GmailMessage:
+    def __init__(self,
+                 message_id: str,
+                 thread_id: str,
+                 label_ids: List[str],
+                 snippet: str,
+                 history_id: str,
+                 internal_date: str,
+                 payload: GmailMessagePart,
+                 size_estimate: int,
+                 ):
+        self.message_id = message_id
+        self.thread_id = thread_id
+        self.label_ids = label_ids
+        self.snippet = snippet
+        self.history_id = history_id
+        self.internal_date = datetime.fromtimestamp(float(internal_date) / 1000)
+        self.payload = payload
+        self.size_estimate = size_estimate
 
 
 class GmailThread:
     def __init__(self,
                  thread_id: str,
                  history_id: str,
-                 messages: List[GmailMessage],
+                 messages: List[dict],
                  snippet: Optional[str] = None,
                  ):
         self.thread_id = thread_id
         self.snippet = snippet
         self.history_id = history_id
-        self.messages = messages
+        self.messages = [
+            GmailMessage(
+                message_id=message.get('id'),
+                thread_id=message.get('threadId'),
+                label_ids=message.get('labelIds'),
+                snippet=message.get('snippet'),
+                history_id=message.get('historyId'),
+                internal_date=message.get('internalDate'),
+                payload=message.get('payload'),
+                size_estimate=message.get('sizeEstimate'),
+            )
+            for message in messages
+        ]
 
 
 class GmailThreadsListResponse(TypedDict):

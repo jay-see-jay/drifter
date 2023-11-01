@@ -8,6 +8,7 @@ from services.gmail import Gmail
 from repositories.user import UserRepo
 from repositories.label import LabelRepo
 from repositories.thread import ThreadRepo
+from repositories.message import MessageRepo
 from stubs.gmail import *
 
 load_dotenv()
@@ -46,8 +47,6 @@ def handle_sync_gmail_mailbox(request):
         else:
             break
 
-    # (id, snippet, user_pk, thread_id, history_id, internal_date, size_estimate, ra)
-    message_values: Set[Tuple[str, str, int, str, str, datetime, str, int, str, datetime, str, str]] = set()
     label_messages: Dict[str, Set[str]] = dict()
     # (id, user_pk, message_id, mime_type, body_attachment_id, body_size, body_data, parent_message_part_id)
     message_part_values: Set[Tuple[str, int, str | None, str, str, str, int, str, str | None]] = set()
@@ -83,37 +82,24 @@ def handle_sync_gmail_mailbox(request):
         ))
         parts = message_part.get('parts', [])
         for message_part in parts:
-            process_message_part(message_part, message_id, message_part_id)
+            process_message_part(message_part, parent_message_id, message_part_id)
 
+    messages: List[GmailMessage] = []
     for thread_id in threads:
         thread = threads.get(thread_id)  # type: GmailThread
-        thread_messages = thread.messages  # type: List[GmailMessage]
 
-        for message in thread_messages:  # type: GmailMessage
-            message_id = message.get('id')
+        messages.extend(thread.messages)
+
+        for message in thread.messages:  # type: GmailMessage
             # Process labels
-            label_ids = message.get('labelIds')  # type: List[str]
-            for label_id in label_ids:
+            for label_id in message.label_ids:  # type: str
                 if label_id not in label_messages:
                     label_messages[label_id] = set()
 
-                label_messages[label_id].add(message['id'])
-
-            # Process message
-            message_values.add((
-                message_id,
-                message.get('snippet'),
-                user.pk,
-                thread.thread_id,
-                message.get('historyId'),
-                message.get('internalDate'),
-                message.get('sizeEstimate'),
-                message.get('raw')
-            ))
+                label_messages[label_id].add(message.message_id)
 
             # Process payload / message part(s)
-            payload = message.get('payload')  # type: GmailMessagePart
-            process_message_part(payload, message_id)
+            process_message_part(message.payload, message.message_id)
 
     label_ids = [label_id for label_id in label_messages]
     labels: List[GmailLabel] = []
@@ -141,11 +127,12 @@ def handle_sync_gmail_mailbox(request):
     # TODO [x] Save all `threads` to db
     thread_repo = ThreadRepo()
     thread_repo.create_many(threads.values(), user)
-    # TODO [ ] Save history Id of first thread to db
     # TODO [x] Save all `labels` to db
     label_repo = LabelRepo()
     label_repo.create_many(labels, user)
-    # TODO [ ] Add messages to db
+    # TODO [x] Add messages to db
+    message_repo = MessageRepo()
+    message_repo.create_many(messages, user)
     # TODO [ ] Add message parts to db
     # TODO [ ] Add headers to db
 
