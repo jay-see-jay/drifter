@@ -1,0 +1,3 @@
+ALTER TABLE labels
+DROP
+COLUMN temp_pk;

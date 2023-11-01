@@ -116,8 +116,15 @@ class Gmail:
             'historyId': get_value_or_fail(cloud_event_data, 'historyId'),
         }
 
-    def get_threads(self, next_page_token=None, count=50) -> GmailThreadsListResponse:
-        return self.api.users().threads().list(userId='me', pageToken=next_page_token, maxResults=count).execute()
+    def get_threads(self, page_token=None, count=50) -> GmailThreadsListResponse:
+        response = self.api.users().threads().list(userId='me', pageToken=page_token, maxResults=count).execute()
+        threads = response.get('threads', [])
+        thread_ids = [thread.get('id') for thread in threads]
+        next_page_token = response.get('nextPageToken')
+        return {
+            'thread_ids': thread_ids,
+            'next_page_token': next_page_token
+        }
 
     def get_changed_thread_ids(self, start_history_id='125125') -> set[str]:
         try:

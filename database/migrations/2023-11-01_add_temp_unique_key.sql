@@ -1,0 +1,2 @@
+ALTER TABLE labels
+	ADD COLUMN temp_pk int NOT NULL UNIQUE KEY;

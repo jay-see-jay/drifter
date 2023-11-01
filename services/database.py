@@ -1,5 +1,6 @@
 import os
 import mysql.connector
+from typing import List
 
 from dotenv import load_dotenv
 
@@ -42,3 +43,14 @@ class Database:
 
         self.cursor.execute(query, variables)
         return self.cursor.fetchall()
+
+    def insert_many(self, query: str, variables: List[tuple]):
+        self.ensure_connection()
+        self.cursor.executemany(query, variables)
+
+    @staticmethod
+    def create_query(column_names: List[str], table_name: str) -> str:
+        columns_str = ', '.join(column_names)
+        variables = ['%s'] * len(column_names)
+        variables_str = ', '.join(variables)
+        return f'INSERT INTO {table_name} ({columns_str}) VALUES ({variables_str})'

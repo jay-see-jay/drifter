@@ -6,6 +6,8 @@ from dotenv import load_dotenv
 
 from services.gmail import Gmail
 from repositories.user import UserRepo
+from repositories.label import LabelRepo
+from repositories.thread import ThreadRepo
 from stubs.gmail import *
 
 load_dotenv()
@@ -24,19 +26,18 @@ def handle_sync_gmail_mailbox(request):
         if exception is not None:
             print(f'Response ID: {response_id} - failed to get thread.\n{exception}')
         else:
-            thread = GmailThread(
+            threads[response['id']] = GmailThread(
                 thread_id=response.get('id'),
                 history_id=response.get('historyId'),
                 messages=response.get('messages'),
                 snippet=response.get('snippet'),
             )
-            threads[response['id']] = thread
 
     # Can maybe reply to this to explain batching requests to Gmail API?
     # https://stackoverflow.com/questions/26004335/get-multiple-threads-by-threadid-in-google-apps-scripts-gmailapp-class
     while True:
-        threads_list_response = gmail.get_threads(next_page_token=page_token, count=1)
-        thread_ids = [thread.get('id') for thread in threads_list_response['threads']]
+        threads_list_response = gmail.get_threads(page_token=page_token, count=1)
+        thread_ids = threads_list_response['thread_ids']
         gmail.get_threads_by_ids(thread_ids, process_thread_response)
         # next_page_token = threads_list_response.get('nextPageToken', None)
         next_page_token = None
@@ -137,8 +138,16 @@ def handle_sync_gmail_mailbox(request):
 
     gmail.get_labels(label_ids=label_ids, callback=process_label_response)
 
-    # TODO : Save all `threads` to db
-    # TODO : Save all `labels` to db
+    # TODO [x] Save all `threads` to db
+    thread_repo = ThreadRepo()
+    thread_repo.create_many(threads.values(), user)
+    # TODO [ ] Save history Id of first thread to db
+    # TODO [x] Save all `labels` to db
+    label_repo = LabelRepo()
+    label_repo.create_many(labels, user)
+    # TODO [ ] Add messages to db
+    # TODO [ ] Add message parts to db
+    # TODO [ ] Add headers to db
 
 
 if __name__ == "__main__":

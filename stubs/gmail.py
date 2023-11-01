@@ -77,16 +77,9 @@ class GmailThread:
         self.messages = messages
 
 
-class GmailThreadDict(TypedDict):
-    id: str
-    snippet: Optional[str]
-    historyId: str
-
-
 class GmailThreadsListResponse(TypedDict):
-    threads: List[GmailThreadDict]
-    nextPageToken: str
-    resultSizeEstimate: int
+    thread_ids: List[str]
+    next_page_token: str
 
 
 MessageListVisibility = Literal['show', 'hide']
@@ -126,6 +119,6 @@ class GmailLabel:
         self.threads_total = threads_total
         self.threads_unread = threads_unread
         if not color:
-            self.color = None
+            self.color = GmailLabelColor()
         else:
             self.color = GmailLabelColor(color.get('textColor'), color.get('backgroundColor'))
