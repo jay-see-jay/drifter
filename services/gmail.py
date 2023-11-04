@@ -43,6 +43,10 @@ class Gmail:
                 creds = self._request_authorization()
 
         self.api = build('gmail', 'v1', credentials=creds)
+        self.batch = None
+        self.batch_request_count = 0
+        # Limit set as per https://developers.google.com/gmail/api/guides/batch
+        self._batch_request_limit = 50
 
     @staticmethod
     def _get_user_auth(user: User) -> dict:
@@ -151,12 +155,34 @@ class Gmail:
         except HttpError as e:
             print(f'Failed to get history of mailbox changes: {e}')
 
+    def create_batch(self, callback):
+        if self.batch is not None or self.batch_request_count != 0:
+            print('Please finalise previous batch request before creating a new one')
+            return
+
+        self.batch = self.api.new_batch_http_request(callback)
+
+    def add_to_batch(self, request):
+        self.batch.add(request)
+        self.batch_request_count += 1
+        if self.batch_request_count >= self._batch_request_limit:
+            print('50 request limit reached, executing batch')
+            self.batch.execute()
+            self.batch_request_count = 0
+
+    def finalise_batch(self):
+        print('Executing final batch')
+        self.batch.execute()
+        self.batch_request_count = 0
+        self.batch = None
+
     def get_threads_by_ids(self, thread_ids: List[str], callback):
-        batch = self.api.new_batch_http_request(callback)
+        self.create_batch(callback)
         for thread_id in thread_ids:
             request = self.api.users().threads().get(userId='me', id=thread_id)
-            batch.add(request)
-        batch.execute()
+            self.add_to_batch(request)
+
+        self.finalise_batch()
 
     def get_thread_by_id(self, thread_id: str) -> GmailThread:
         try:
@@ -172,11 +198,12 @@ class Gmail:
             print(f'Failed to get thread from Gmail: {e}')
 
     def get_labels(self, label_ids: List[str], callback):
-        batch = self.api.new_batch_http_request(callback)
+        self.create_batch(callback)
         for label_id in label_ids:
             request = self.api.users().labels().get(userId='me', id=label_id)
-            batch.add(request)
-        batch.execute()
+            self.add_to_batch(request)
+
+        self.finalise_batch()
 
     @staticmethod
     def parse_message_headers(message_part: GmailMessagePart) -> ParsedMessageHeaders:

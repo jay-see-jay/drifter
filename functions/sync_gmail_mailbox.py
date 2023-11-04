@@ -33,13 +33,10 @@ def handle_sync_gmail_mailbox(request):
     # Can maybe reply to this to explain batching requests to Gmail API?
     # https://stackoverflow.com/questions/26004335/get-multiple-threads-by-threadid-in-google-apps-scripts-gmailapp-class
     while True:
-        # TODO : Remove 1 thread limit
-        threads_list_response = gmail.get_threads(page_token=page_token, count=1)
+        threads_list_response = gmail.get_threads(page_token=page_token, count=75)
         thread_ids = threads_list_response['thread_ids']
         gmail.get_threads_by_ids(thread_ids, process_thread_response)
-        # TODO : Uncomment
-        # next_page_token = threads_list_response.get('nextPageToken', None)
-        next_page_token = None
+        next_page_token = threads_list_response.get('nextPageToken', None)
         if next_page_token:
             page_token = next_page_token
         else:
@@ -97,7 +94,6 @@ def handle_sync_gmail_mailbox(request):
                 label_list_visibility=response.get('labelListVisibility')
             ))
 
-    # TODO: Batch this into groups of 50 labels
     gmail.get_labels(label_ids=label_ids, callback=process_label_response)
 
     thread_repo = ThreadRepo()

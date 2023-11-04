@@ -9,6 +9,7 @@ from models.user import User
 class MessagePartRepo:
     def __init__(self):
         self.db = Database()
+        self.byte_limit = 2 ** 16
 
     def create_many(self, parts: List[GmailMessagePart], user: User):
         columns = [
@@ -27,6 +28,12 @@ class MessagePartRepo:
 
         variables: List[tuple] = []
         for part in parts:  # type: GmailMessagePart
+            body_data = part.body.get('data', '')
+            base64_bytes = body_data.encode('utf-8')
+            byte_count = len(base64_bytes)
+            if byte_count >= self.byte_limit:
+                body_data = None
+
             variables.append((
                 user.pk,
                 part.message_id,
@@ -35,7 +42,7 @@ class MessagePartRepo:
                 part.filename,
                 part.body.get('attachmentId'),
                 part.body.get('size'),
-                part.body.get('data'),
+                body_data,
                 part.parent_part_id,
             ))
 
