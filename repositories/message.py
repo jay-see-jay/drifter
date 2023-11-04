@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Dict, Set
 import mysql.connector
 from services.database import Database
 from stubs.gmail import GmailMessage
@@ -38,3 +38,27 @@ class MessageRepo:
             self.db.insert_many(query, variables)
         except mysql.connector.Error as e:
             print(f'Failed to insert {len(messages)} messages into db: {e.msg}')
+
+    def store_labels(
+        self,
+        label_messages: Dict[str, Set[str]],
+        label_pks: Dict[str, int],
+    ):
+        variables: List[tuple] = []
+        for label_id in label_messages:  # type: str
+            label_pk = label_pks.get(label_id)
+            if not label_pk:
+                continue
+            messages = label_messages[label_id]  # type: Set[str]
+
+            for message_id in messages:
+                variables.append((label_pk, message_id))
+
+        columns = ['label_pk', 'message_id']
+
+        query = self.db.create_query(columns, 'messages_labels')
+
+        try:
+            self.db.insert_many(query, variables)
+        except mysql.connector.Error as e:
+            print(f'Failed to create relations between messages and {len(label_messages)} labels: {e.msg}')

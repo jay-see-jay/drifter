@@ -1,0 +1,5 @@
+ALTER TABLE labels
+DROP
+PRIMARY KEY,
+	ADD PRIMARY KEY (pk),
+	ADD UNIQUE KEY (id, user_pk);

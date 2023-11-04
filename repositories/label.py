@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, TypedDict
 import mysql.connector
 
 from services.database import Database
@@ -9,6 +9,22 @@ from stubs.gmail import GmailLabel
 class LabelRepo:
     def __init__(self):
         self.db = Database()
+
+    def get(self, user: User):
+        query = 'SELECT pk, id FROM labels WHERE user_pk = %s'
+        variables = (user.pk,)
+        try:
+            labels = self.db.query(query, variables)  # type: List[dict]
+            label_id_dict = dict()
+            for label in labels:
+                label_id = label.get('id')
+                label_pk = label.get('pk')
+                if label_id and label_pk:
+                    label_id_dict[label_id] = label_pk
+
+            return label_id_dict
+        except mysql.connector.Error as e:
+            print(f'Failed to get labels from db: {e.msg}')
 
     def create_many(self, labels: List[GmailLabel], user: User):
         columns = [

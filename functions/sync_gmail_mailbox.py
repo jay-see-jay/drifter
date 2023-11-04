@@ -1,6 +1,5 @@
 import os
-from typing import Dict, Set, Tuple
-from datetime import datetime
+from typing import Dict, Set
 
 from dotenv import load_dotenv
 
@@ -34,9 +33,11 @@ def handle_sync_gmail_mailbox(request):
     # Can maybe reply to this to explain batching requests to Gmail API?
     # https://stackoverflow.com/questions/26004335/get-multiple-threads-by-threadid-in-google-apps-scripts-gmailapp-class
     while True:
+        # TODO : Remove 1 thread limit
         threads_list_response = gmail.get_threads(page_token=page_token, count=1)
         thread_ids = threads_list_response['thread_ids']
         gmail.get_threads_by_ids(thread_ids, process_thread_response)
+        # TODO : Uncomment
         # next_page_token = threads_list_response.get('nextPageToken', None)
         next_page_token = None
         if next_page_token:
@@ -96,6 +97,7 @@ def handle_sync_gmail_mailbox(request):
                 label_list_visibility=response.get('labelListVisibility')
             ))
 
+    # TODO: Batch this into groups of 50 labels
     gmail.get_labels(label_ids=label_ids, callback=process_label_response)
 
     thread_repo = ThreadRepo()
@@ -103,13 +105,11 @@ def handle_sync_gmail_mailbox(request):
 
     label_repo = LabelRepo()
     label_repo.create_many(labels, user)
-    # TODO [ ] Save message and label relationships to messages_labels
-    # TODO [ ] Add pk to labels table
-    # TODO [ ] Add composite unique key to labels with user_pk and id
-    # TODO [ ] Change label_id to label_pk in messages_labels table
+    saved_labels = label_repo.get(user)
 
     message_repo = MessageRepo()
     message_repo.create_many(messages, user)
+    message_repo.store_labels(label_messages, saved_labels)
 
     message_parts_repo = MessagePartRepo()
     message_parts_repo.create_many(message_parts, user)
