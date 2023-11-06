@@ -4,7 +4,7 @@ import json
 
 from dotenv import load_dotenv
 from email.message import EmailMessage
-from google.auth.transport.requests import Request
+import google.auth.transport.requests
 from google.auth.exceptions import RefreshError
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
@@ -13,7 +13,7 @@ from googleapiclient.errors import HttpError
 from cloudevents.http import CloudEvent
 
 from utilities.dict_utils import get_value_or_fail
-from utilities.email_utils import *
+from utilities.user_utils import *
 from models.user import User
 from repositories.user import UserRepo
 from stubs.gmail import *
@@ -76,7 +76,7 @@ class Gmail:
     def _refresh_credentials(self, creds: Credentials, ) -> bool:
         if creds and creds.expired and creds.refresh_token:
             try:
-                creds.refresh(Request())
+                creds.refresh(google.auth.transport.requests.Request())
                 return True
             except RefreshError as e:
                 error_description = e.args[1].get('error_description')
@@ -96,16 +96,20 @@ class Gmail:
         self.user_repo.save_credentials(user=self.user, creds=creds)
         return creds
 
-    def watch_mailbox(self) -> WatchSubscriptionResponse:
+    def watch_mailbox(self):
         cloud_project = os.getenv('GOOGLE_PROJECT_ID')
         pubsub_topic = os.getenv('GOOGLE_PUBSUB_TOPIC')
 
-        request = {
+        body = {
             'labelIds': ['INBOX'],
             'topicName': f'projects/{cloud_project}/topics/{pubsub_topic}',
             'labelFilterBehavior': 'INCLUDE'
         }
-        return self.api().users().watch(userId='me', body=request).execute()
+        try:
+            response = self.api.users().watch(userId='me', body=body).execute()
+            return response.get('historyId')
+        except HttpError as e:
+            raise e
 
     def unwatch_mailbox(self):
         return self.api.users().stop(userId='me').execute()
@@ -129,6 +133,14 @@ class Gmail:
             'thread_ids': thread_ids,
             'next_page_token': next_page_token
         }
+
+    def get_history(self, start_history_id: str) -> HistoryResponse:
+        try:
+            return self.api.users().history().list(userId='me',
+                                                   startHistoryId=start_history_id).execute()
+        except HttpError as e:
+            raise e
+        pass
 
     def get_changed_thread_ids(self, start_history_id='125125') -> set[str]:
         try:

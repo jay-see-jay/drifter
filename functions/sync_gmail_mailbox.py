@@ -1,41 +1,22 @@
 import mysql.connector
 from flask import Request, Response, make_response
+from werkzeug.exceptions import HTTPException
 from typing import Dict, Set
-from mysql.connector import DatabaseError
-
-from dotenv import load_dotenv
-
 from services.gmail import Gmail
 from repositories import *
 from models.user import User
 from stubs.gmail import *
 
-load_dotenv()
-
-
-def get_user_id_from_path(request: Request) -> Optional[int]:
-    path = request.path.strip('/').split('/')
-    if path[0] != 'users':
-        return None
-
-    user_id = path[1]
-    if not user_id.isdigit():
-        return None
-
-    return int(user_id)
-
 
 def handle_sync_gmail_mailbox(request: Request) -> Response:
-    user_id = get_user_id_from_path(request)
-    if not user_id:
-        return make_response('User ID not found in request', 400)
-
     user_repo = UserRepo()
     user: User
     try:
-        user = user_repo.get_by_id(user_id)
+        user = user_repo.get_from_request(request)
     except mysql.connector.Error as e:
-        return make_response(f'User not found', 404)
+        return make_response(e.msg, 404)
+    except HTTPException as e:
+        return make_response(e.description, 400)
 
     gmail = Gmail(user)
     page_token = None

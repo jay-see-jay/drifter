@@ -4,9 +4,11 @@ import mysql.connector
 from cryptography.fernet import Fernet
 from dotenv import load_dotenv
 from google.oauth2.credentials import Credentials
-from datetime import datetime
+from flask import Request
+from werkzeug.exceptions import HTTPException
 
 from services.database import Database
+from utilities.user_utils import get_user_id_from_path
 from models.user import User
 
 load_dotenv()
@@ -54,6 +56,7 @@ class UserRepo:
         try:
             response = self.db.query(query, variables)
         except mysql.connector.Error as e:
+            e.msg = 'User not found'
             raise e
 
         encrypted_access_token = response[0].get('access_token')
@@ -66,6 +69,18 @@ class UserRepo:
             refresh_token=self.decrypt(encrypted_refresh_token),
             token_expires_at=response[0].get('token_expires_at'),
         )
+
+    def get_from_request(self, request: Request) -> User:
+        user_id = get_user_id_from_path(request)
+        if not user_id:
+            raise HTTPException('User ID not found in request')
+
+        try:
+            return self.get_by_id(user_id)
+        except mysql.connector.Error as e:
+            raise e
+
+    pass
 
     def get_by_id(self, user_pk: int) -> User:
         columns = [
