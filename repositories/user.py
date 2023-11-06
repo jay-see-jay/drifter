@@ -1,5 +1,6 @@
 import os
 
+import mysql.connector
 from cryptography.fernet import Fernet
 from dotenv import load_dotenv
 from google.oauth2.credentials import Credentials
@@ -48,16 +49,16 @@ class UserRepo:
 
         self.db.close()
 
-    def get(self, email: str) -> User:
-        query = """
-            SELECT pk, email, is_active, created_at, access_token, refresh_token, token_expires_at
-            FROM users
-            WHERE email=%s
-        """
-        response = self.db.query(query, (email,))
+    def get(self, query, variables) -> User:
+        response: list
+        try:
+            response = self.db.query(query, variables)
+        except mysql.connector.Error as e:
+            raise e
+
         encrypted_access_token = response[0].get('access_token')
         encrypted_refresh_token = response[0].get('refresh_token')
-        user = User(
+        return User(
             pk=response[0].get('pk'),
             email=response[0].get('email'),
             is_active=response[0].get('is_active'),
@@ -65,8 +66,38 @@ class UserRepo:
             refresh_token=self.decrypt(encrypted_refresh_token),
             token_expires_at=response[0].get('token_expires_at'),
         )
-        self.db.close()
-        return user
+
+    def get_by_id(self, user_pk: int) -> User:
+        columns = [
+            'pk',
+            'email',
+            'is_active',
+            'created_at',
+            'access_token',
+            'refresh_token',
+            'token_expires_at',
+        ]
+        query = f'SELECT {", ".join(columns)} FROM users WHERE pk=%s'
+        try:
+            return self.get(query, (user_pk,))
+        except mysql.connector.Error as e:
+            raise e
+
+    def get_by_email(self, email: str) -> User:
+        columns = [
+            'pk',
+            'email',
+            'is_active',
+            'created_at',
+            'access_token',
+            'refresh_token',
+            'token_expires_at',
+        ]
+        query = f'SELECT {", ".join(columns)} FROM users WHERE pk=%s'
+        try:
+            return self.get(query, (email,))
+        except mysql.connector.Error as e:
+            raise e
 
     def save_credentials(self, user: User, creds: Credentials) -> None:
         encrypted_token = self.encrypt(creds.token)

@@ -42,7 +42,11 @@ class Database:
         self.ensure_connection()
 
         self.cursor.execute(query, variables)
-        return self.cursor.fetchall()
+        response = self.cursor.fetchall()
+        if len(response) == 0:
+            raise mysql.connector.Error('Not found')
+
+        return response
 
     def insert_many(self, query: str, variables: List[tuple]):
         self.ensure_connection()

@@ -15,7 +15,7 @@ def handle_watch_gmail_messages(cloud_event: CloudEvent) -> None:
     email = cloud_event_data['emailAddress']
     history_id = cloud_event_data['historyId']
 
-    user = UserRepo().get(email)
+    user = UserRepo().get_by_email(email)
     gmail = Gmail(user)
     openai = OpenAI()
     changed_thread_ids = gmail.get_changed_thread_ids(history_id)

@@ -1,19 +1,41 @@
-import os
+import mysql.connector
+from flask import Request, Response, make_response
 from typing import Dict, Set
+from mysql.connector import DatabaseError
 
 from dotenv import load_dotenv
 
 from services.gmail import Gmail
 from repositories import *
+from models.user import User
 from stubs.gmail import *
 
 load_dotenv()
 
 
-def handle_sync_gmail_mailbox(request):
+def get_user_id_from_path(request: Request) -> Optional[int]:
+    path = request.path.strip('/').split('/')
+    if path[0] != 'users':
+        return None
+
+    user_id = path[1]
+    if not user_id.isdigit():
+        return None
+
+    return int(user_id)
+
+
+def handle_sync_gmail_mailbox(request: Request) -> Response:
+    user_id = get_user_id_from_path(request)
+    if not user_id:
+        return make_response('User ID not found in request', 400)
+
     user_repo = UserRepo()
-    # TODO: Extract user id or email from request
-    user = user_repo.get(os.getenv('MY_EMAIL'))
+    user: User
+    try:
+        user = user_repo.get_by_id(user_id)
+    except mysql.connector.Error as e:
+        return make_response(f'User not found', 404)
 
     gmail = Gmail(user)
     page_token = None
@@ -33,7 +55,7 @@ def handle_sync_gmail_mailbox(request):
     # Can maybe reply to this to explain batching requests to Gmail API?
     # https://stackoverflow.com/questions/26004335/get-multiple-threads-by-threadid-in-google-apps-scripts-gmailapp-class
     while True:
-        threads_list_response = gmail.get_threads(page_token=page_token, count=75)
+        threads_list_response = gmail.get_threads(page_token=page_token)
         thread_ids = threads_list_response['thread_ids']
         gmail.get_threads_by_ids(thread_ids, process_thread_response)
         next_page_token = threads_list_response.get('nextPageToken', None)
@@ -113,6 +135,4 @@ def handle_sync_gmail_mailbox(request):
     header_repo = HeaderRepo()
     header_repo.create_many(headers, user)
 
-
-if __name__ == "__main__":
-    handle_sync_gmail_mailbox({})
+    return make_response()
