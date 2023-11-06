@@ -6,6 +6,7 @@ from dotenv import load_dotenv
 from google.oauth2.credentials import Credentials
 from flask import Request
 from werkzeug.exceptions import HTTPException
+from typing import List
 
 from services.database import Database
 from utilities.user_utils import get_user_id_from_path
@@ -51,6 +52,36 @@ class UserRepo:
 
         self.db.close()
 
+    def get_all(self) -> List[User]:
+        columns = [
+            'pk',
+            'email',
+            'is_active',
+            'created_at',
+            'access_token',
+            'refresh_token',
+            'token_expires_at',
+        ]
+        query = f'SELECT {", ".join(columns)} FROM users'
+        try:
+            response = self.db.query(query, ())
+            users: List[User] = []
+            for row in response:
+                encrypted_access_token = row.get('access_token')
+                encrypted_refresh_token = row.get('refresh_token')
+                users.append(User(
+                    pk=row.get('pk'),
+                    email=row.get('email'),
+                    is_active=row.get('is_active'),
+                    access_token=self.decrypt(encrypted_access_token),
+                    refresh_token=self.decrypt(encrypted_refresh_token),
+                    token_expires_at=response[0].get('token_expires_at'),
+                ))
+            return users
+        except mysql.connector.Error as e:
+            e.msg = 'Failed to get all user emails'
+            raise e
+
     def get(self, query, variables) -> User:
         response: list
         try:
@@ -80,8 +111,6 @@ class UserRepo:
         except mysql.connector.Error as e:
             raise e
 
-    pass
-
     def get_by_id(self, user_pk: int) -> User:
         columns = [
             'pk',
@@ -108,11 +137,24 @@ class UserRepo:
             'refresh_token',
             'token_expires_at',
         ]
-        query = f'SELECT {", ".join(columns)} FROM users WHERE pk=%s'
+        query = f'SELECT {", ".join(columns)} FROM users WHERE email=%s'
         try:
             return self.get(query, (email,))
         except mysql.connector.Error as e:
             raise e
+
+    def get_latest_history_id(self, user: User) -> str:
+        tables = ['threads', 'messages']
+        history_ids = []
+        for table in tables:
+            query = f'SELECT history_id FROM {table} WHERE user_pk=%s ORDER BY history_id DESC LIMIT 1;'
+            variables = (user.pk,)
+            response = self.db.query(query, variables)
+            history_id = response[0].get('history_id')
+            history_ids.append(history_id)
+
+        history_ids.sort(reverse=True)
+        return history_ids[0]
 
     def save_credentials(self, user: User, creds: Credentials) -> None:
         encrypted_token = self.encrypt(creds.token)

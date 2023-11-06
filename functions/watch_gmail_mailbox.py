@@ -20,13 +20,9 @@ def handle_watch_gmail_mailbox(request: flask.Request) -> flask.Response:
 
     gmail = Gmail(user)
 
-    action = 'watch'
     try:
         gmail.watch_mailbox()
-
-        # action = 'unwatch'
-        # response = gmail_service.unwatch_mailbox()
     except HttpError as e:
-        return flask.make_response(f'Failed to {action} user\'s mailbox')
+        return flask.make_response(f'Failed to watch user\'s mailbox')
 
     return flask.make_response()

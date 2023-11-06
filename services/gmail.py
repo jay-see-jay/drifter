@@ -15,7 +15,7 @@ from cloudevents.http import CloudEvent
 from utilities.dict_utils import get_value_or_fail
 from utilities.user_utils import *
 from models.user import User
-from repositories.user import UserRepo
+from repositories import UserRepo, HistoryRepo
 from stubs.gmail import *
 from stubs.internal import *
 
@@ -134,38 +134,38 @@ class Gmail:
             'next_page_token': next_page_token
         }
 
-    def get_history(self, start_history_id: str) -> HistoryResponse:
+    def get_history(self, start_history_id: str) -> List[History]:
+        history: List[History] = []
         try:
-            return self.api.users().history().list(userId='me',
-                                                   startHistoryId=start_history_id).execute()
+            response = self.api.users().history().list(userId='me',
+                                                       startHistoryId=start_history_id).execute()
+            history.extend(response.get('history', []))
+            next_page_token = response.get('nextPageToken')
+            while next_page_token:
+                response = self.api.users().history().list(userId='me',
+                                                           next_page_token=next_page_token).execute()
+                history.extend(response.get('history', []))
+                next_page_token = response.get('nextPageToken')
+
+            return history
+
         except HttpError as e:
             raise e
-        pass
 
-    def get_changed_thread_ids(self, start_history_id='125125') -> set[str]:
-        try:
-            response = self.api.users() \
-                .history().list(userId='me', startHistoryId=start_history_id).execute()  # type: HistoryResponse
-            # TODO: Update latest historyId in database: response['historyId']
-            # TODO: Get next page if there is a nextPageToken: response['nextPageToken']
-            history_list = response.get('history')
+    def process_history(self, history_list: List[History], user: User):
+        history_repo = HistoryRepo()
+        history_repo.create_many(history_list, user)
+        for history in history_list:
+            self.process_messages_added(history)
+            # Finish by updating `processed_at` column
+            pass
 
-            messages = []
+    def process_messages_added(self, history: History):
+        messages_added = history.get('messagesAdded')
+        if not messages_added:
+            return
 
-            if history_list:
-                for item in history_list:
-                    item_messages = item.get('messages', [])
-                    messages.extend(item_messages)
-
-            affected_thread_ids: set[str] = set()
-
-            for message in messages:
-                affected_thread_ids.add(message.get('threadId'))
-
-            return affected_thread_ids
-
-        except HttpError as e:
-            print(f'Failed to get history of mailbox changes: {e}')
+        print('Implement: process_messages_added')
 
     def create_batch(self, callback):
         if self.batch is not None or self.batch_request_count != 0:
