@@ -157,6 +157,9 @@ class Gmail:
         history_repo.create_many(history_list, user)
         for history in history_list:
             self.process_messages_added(history)
+            self.process_messages_deleted(history)
+            self.process_labels_added(history)
+            self.process_labels_removed(history)
             # Finish by updating `processed_at` column
             pass
 
@@ -166,6 +169,27 @@ class Gmail:
             return
 
         print('Implement: process_messages_added')
+
+    def process_messages_deleted(self, history: History):
+        messages_deleted = history.get('messagesDeleted')
+        if not messages_deleted:
+            return
+
+        print('Implement: process_messages_deleted')
+
+    def process_labels_added(self, history: History):
+        labels_added = history.get('labelsAdded')
+        if not labels_added:
+            return
+
+        print('Implement: process_labels_added')
+
+    def process_labels_removed(self, history: History):
+        labels_removed = history.get('labelsRemoved')
+        if not labels_removed:
+            return
+
+        print('Implement: process_labels_removed')
 
     def create_batch(self, callback):
         if self.batch is not None or self.batch_request_count != 0:
