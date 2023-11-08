@@ -4,7 +4,7 @@ from cloudevents.http import CloudEvent
 
 from services.gmail import Gmail
 from services.openai import OpenAI
-from repositories import UserRepo, MessageRepo
+from repositories import UserRepo
 
 from stubs.internal import ParsedMessage
 
