@@ -1,4 +1,4 @@
-from typing import List, Optional
+from typing import List, Optional, Dict
 import mysql.connector
 
 from services.database import Database
@@ -37,12 +37,12 @@ class LabelRepo:
                 return None
             print(f'Could not retrieve label from db: {e}')
 
-    def get_all(self):
+    def get_all(self) -> Dict[str, int]:
         query = 'SELECT pk, id FROM labels WHERE user_pk = %s'
         variables = (self.user.pk,)
         try:
             labels = self.db.query(query, variables)  # type: List[dict]
-            label_id_dict = dict()
+            label_id_dict: Dict[str, int] = dict()
             for label in labels:
                 label_id = label.get('id')
                 label_pk = label.get('pk')
