@@ -1,7 +1,7 @@
 import os
 import base64
 import json
-from typing import Dict, Set
+from typing import Dict, Set, Tuple
 
 from dotenv import load_dotenv
 from email.message import EmailMessage
@@ -13,7 +13,7 @@ from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 from cloudevents.http import CloudEvent
 
-from utilities.general import get_value_or_fail, process_message_parts
+from utilities.general import *
 from utilities.user_utils import *
 from models.user import User
 from repositories import *
@@ -145,26 +145,19 @@ class Gmail:
             raise e
 
     def process_history(self, history_list: List[History]):
-        history_repo = HistoryRepo()
-        # history_repo.create_many(history_list, self.user)
-        # TODO : Add all the messages added in the history_list in one go
-        self.process_messages_added(history_list)
-        # TODO : Mark all the messages that have been deleted
-        # TODO : Ensure all the labels in labels_added and labels_removed are in the db
-        # TODO : For each history record, create a corresponding `messages_labels_history` record
-        # TODO : Finish by updating `processed_at` column
-
-    def process_messages_added(self, history_list: List[History]):
         if len(history_list) == 0:
             return
 
+        history_repo = HistoryRepo()
+        # TODO : Uncomment
+        # history_repo.create_many(history_list, self.user)
         message_history_ids: Dict[str, Set[str]] = dict()
         for history_record in history_list:
             history_id = history_record.get('id')
             messages_added = history_record.get('messagesAdded')
             if not messages_added:
                 continue
-            for message_added in messages_added:  # type: dict
+            for message_added in messages_added:
                 message_id = message_added['message']['id']
                 if message_id not in message_history_ids:
                     message_history_ids[message_id] = set()
@@ -191,10 +184,29 @@ class Gmail:
                 if msg.message_id not in message_history_ids:
                     messages[msg.message_id] = msg
 
+        message_ids_to_delete: List[Tuple[str, str]] = []
+        for history_record in history_list:
+            history_id = history_record.get('id')
+            messages_deleted = history_record.get('messagesDeleted')
+            if not messages_deleted:
+                continue
+            for messages_deleted in messages_deleted:
+                message_id = messages_deleted['message']['id']
+                if message_id not in message_history_ids:
+                    message_history_ids[message_id] = set()
+
+                message_history_ids[message_id].add(history_id)
+
+                if message_id in messages:
+                    messages[message_id].deleted_history_id = history_id
+                else:
+                    message_ids_to_delete.append((message_id, history_id))
+
         messages_list = list(messages.values())
         message_repo = MessageRepo(self.user)
         # TODO : Uncomment
         # message_repo.create_many(messages_list)
+        # message_repo.mark_deleted(message_ids_to_delete)
         # TODO : Uncomment
         # message_repo.create_history(message_history_ids)
         part_repo = MessagePartRepo()
@@ -206,23 +218,15 @@ class Gmail:
         # TODO : Uncomment
         # part_repo.create_many(message_parts, self.user)
 
-        # TODO: If no thread, create thread
-        thread_repo.create_many(list(threads.values()), self.user)
-        # TODO: If no label, create label
-        label_messages: Dict[str, Set[str]] = dict()
-        for msg in messages:
-            for label_id in msg.label_ids:  # type: str
-                if label_id not in label_messages:
-                    label_messages[label_id] = set()
-
-                label_messages[label_id].add(msg.message_id)
-
-        label_ids = [label_id for label_id in label_messages]
+        label_messages = create_label_messages_dict(messages_list)
+        label_ids = list(label_messages.keys())
         labels = self.get_labels(label_ids)
+        # TODO: If no label, create label
         # TODO: Update messages_labels
         # TODO: Update messages_labels_history
-
-        print('Implement: process_messages_added')
+        # TODO : Ensure all the labels in labels_added and labels_removed are in the db
+        # TODO : For each history record, create a corresponding `messages_labels_history` record
+        # TODO : Finish by updating `processed_at` column
 
     def create_batch(self, callback):
         if self.batch is not None or self.batch_request_count != 0:

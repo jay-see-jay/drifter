@@ -89,3 +89,14 @@ class MessageRepo:
             self.db.insert_many(query, variables)
         except mysql.connector.Error as e:
             print(f'Failed to create relations between messages and {len(label_messages)} labels: {e.msg}')
+
+    def mark_deleted(self, message_history_ids: List[Tuple[str, str]]):
+        query = 'UPDATE threads SET deleted_history_id="%s" WHERE id="%s"'
+
+        print('query', query)
+        print('message_history_ids', message_history_ids)
+
+        try:
+            self.db.insert_many(query, message_history_ids)
+        except mysql.connector.Error as e:
+            print(f'Failed to mark {len(message_history_ids)} as deleted: {e.msg}')
