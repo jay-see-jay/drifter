@@ -4,6 +4,8 @@ from services import Database
 from stubs.gmail import *
 from models.user import User
 
+MessageLabelHistoryAction = Literal['added', 'removed']
+
 
 class MessageRepo:
     def __init__(self, user: User):
@@ -90,8 +92,72 @@ class MessageRepo:
         except mysql.connector.Error as e:
             print(f'Failed to create relations between messages and {len(label_messages)} labels: {e.msg}')
 
+    def process_label_history(self,
+                              label_pk_dict: Dict[str, int],
+                              history_record: History,
+                              ):
+
+        history_id = history_record['id']
+
+        labels_added = history_record.get('labelsAdded', [])
+        labels_removed = history_record.get('labelsRemoved', [])
+
+        self.edit_labels(label_pk_dict, labels_added, 'added', history_id)
+        self.edit_labels(label_pk_dict, labels_removed, 'removed', history_id)
+
+    def edit_labels(
+        self,
+        label_pk_dict: Dict[str, int],
+        label_messages: List[HistoryLabelsChanged],
+        action: MessageLabelHistoryAction,
+        history_id: str = None,
+    ):
+        # TODO : Make sure this does the right thing
+        if action != 'added' or action != 'removed':
+            raise Exception('Action must be one of "action" or "removed"')
+
+        variables: List[Tuple[int, str]] = []
+
+        for label_message in label_messages:
+            label_ids = label_message.get('labelIds', [])
+            message_id = label_message['message']['id']
+            message_labels = [(label_pk_dict[label_id], message_id) for label_id in label_ids]
+            variables.extend(message_labels)
+
+        columns = ['label_pk', 'message_id']
+        query: str
+        if action == 'added':
+            query = self.db.create_query(columns, 'messages_labels')
+        else:
+            query = self.db.create_delete_query(columns, 'messages_labels')
+
+        # TODO : Uncomment
+        # try:
+        #     self.db.insert_many(query, variables)
+        # except mysql.connector.Error as e:
+        #     print(f'Failed to edit labels: {e}')
+
+        if history_id:
+            self.store_messages_labels_history(variables, history_id, action)
+
+    def store_messages_labels_history(
+        self,
+        label_pk_messages: List[Tuple[int, str]],
+        history_id: str,
+        action: MessageLabelHistoryAction,
+    ):
+        # TODO : Make sure this behaves as expected
+        columns = ['label_pk', 'message_id', 'history_id', 'action']
+        query = self.db.create_query(columns, 'messages_labels_history')
+        variables: List[Tuple[int, str, str, MessageLabelHistoryAction]] = []
+
+        for label_pk_message in label_pk_messages:
+            variables.append(label_pk_message + (history_id, action))
+
+        # TODO : Add query
+
     def mark_deleted(self, message_history_ids: List[Tuple[str, str]]):
-        query = 'UPDATE threads SET deleted_history_id="%s" WHERE id="%s"'
+        query = 'UPDATE messages SET deleted_history_id="%s" WHERE id="%s"'
 
         print('query', query)
         print('message_history_ids', message_history_ids)

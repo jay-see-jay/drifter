@@ -156,9 +156,9 @@ class Gmail:
         for history_record in history_list:
             history_id = history_record.get('id')
             messages_added = history_record.get('messagesAdded', [])
-            labels_added = history_record.get('labelsAdded', [])
-            labels_removed = history_record.get('labelsRemoved', [])
-            for changed_label in labels_added + labels_removed:
+            messages_with_labels_added = history_record.get('labelsAdded', [])
+            messages_with_labels_removed = history_record.get('labelsRemoved', [])
+            for changed_label in messages_with_labels_added + messages_with_labels_removed:
                 labels_added_or_removed.update(changed_label.get('labelIds', []))
 
             for message_added in messages_added:
@@ -227,8 +227,10 @@ class Gmail:
         #   label_repo.upsert(lbl)
         # TODO: Update messages_labels
         # TODO : Ensure all the labels in labels_added and labels_removed are in the db
-        # TODO: Update messages_labels_history
-        # TODO : For each history record, create a corresponding `messages_labels_history` record
+        existing_labels_dict = label_repo.get_all()
+        for history_record in history_list:
+            message_repo.process_label_history(existing_labels_dict, history_record, 'added')
+            message_repo.process_label_history(existing_labels_dict, history_record, 'removed')
 
         # TODO : Uncomment
         # message_repo.create_history(message_history_ids)
