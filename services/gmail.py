@@ -207,8 +207,6 @@ class Gmail:
         # TODO : Uncomment
         # message_repo.create_many(messages_list)
         # message_repo.mark_deleted(message_ids_to_delete)
-        # TODO : Uncomment
-        # message_repo.create_history(message_history_ids)
         part_repo = MessagePartRepo()
         header_repo = HeaderRepo()
 
@@ -226,6 +224,9 @@ class Gmail:
         # TODO: Update messages_labels_history
         # TODO : Ensure all the labels in labels_added and labels_removed are in the db
         # TODO : For each history record, create a corresponding `messages_labels_history` record
+
+        # TODO : Uncomment
+        # message_repo.create_history(message_history_ids)
         # TODO : Finish by updating `processed_at` column
 
     def create_batch(self, callback):
