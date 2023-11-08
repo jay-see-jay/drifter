@@ -1,5 +1,5 @@
 import json
-from typing import List
+from typing import List, Dict, Set
 from stubs import GmailMessage, GmailMessagePart, GmailHeader
 
 
@@ -13,6 +13,18 @@ def get_value_or_fail(data: dict, key: str) -> str:
 
 def print_object(obj: object) -> None:
     print(json.dumps(vars(obj), default=lambda x: x.__dict__))
+
+
+def create_label_messages_dict(messages: List[GmailMessage]) -> Dict[str, Set[str]]:
+    label_messages: Dict[str, Set[str]] = dict()
+    for msg in messages:
+        for label_id in msg.label_ids:  # type: str
+            if label_id not in label_messages:
+                label_messages[label_id] = set()
+
+                label_messages[label_id].add(msg.message_id)
+
+        return label_messages
 
 
 def process_message_part(part: GmailMessagePart) -> tuple[List[GmailHeader], List[GmailMessagePart]]:
