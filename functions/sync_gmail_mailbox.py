@@ -65,7 +65,7 @@ def handle_sync_gmail_mailbox(request: Request) -> Response:
 
     label_repo = LabelRepo(user)
     label_repo.create_many(labels)
-    saved_labels = label_repo.get()
+    saved_labels = label_repo.get_all()
 
     message_repo = MessageRepo(user)
     message_repo.create_many(messages)
