@@ -1,7 +1,7 @@
-from typing import List, Dict, Set
+from typing import Dict, Set
 import mysql.connector
-from services.database import Database
-from stubs.gmail import GmailMessage
+from services import Database
+from stubs.gmail import *
 from models.user import User
 
 
@@ -10,6 +10,9 @@ class MessageRepo:
         self.db = Database()
 
     def create_many(self, messages: List[GmailMessage], user: User):
+        if len(messages) == 0:
+            return
+
         columns = [
             'id',
             'snippet',

@@ -11,6 +11,9 @@ class HeaderRepo:
         self.db = Database()
 
     def create_many(self, headers: List[GmailHeader], user: User):
+        if len(headers) == 0:
+            return
+
         required_headers = ['date', 'from', 'sender', 'to', 'cc', 'bcc', 'subject']
         headers = [h for h in headers if h.name.lower() in required_headers]
         columns = [

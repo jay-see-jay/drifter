@@ -12,6 +12,9 @@ class MessagePartRepo:
         self.byte_limit = 2 ** 16
 
     def create_many(self, parts: List[GmailMessagePart], user: User):
+        if len(parts) == 0:
+            return
+
         columns = [
             'user_pk',
             'message_id',
