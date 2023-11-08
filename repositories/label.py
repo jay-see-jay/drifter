@@ -7,12 +7,13 @@ from stubs.gmail import GmailLabel
 
 
 class LabelRepo:
-    def __init__(self):
+    def __init__(self, user: User):
         self.db = Database()
+        self.user = user
 
-    def get(self, user: User):
+    def get(self):
         query = 'SELECT pk, id FROM labels WHERE user_pk = %s'
-        variables = (user.pk,)
+        variables = (self.user.pk,)
         try:
             labels = self.db.query(query, variables)  # type: List[dict]
             label_id_dict = dict()
@@ -26,7 +27,7 @@ class LabelRepo:
         except mysql.connector.Error as e:
             print(f'Failed to get labels from db: {e.msg}')
 
-    def create_many(self, labels: List[GmailLabel], user: User):
+    def create_many(self, labels: List[GmailLabel]):
         columns = [
             'id',
             'name',
@@ -56,7 +57,7 @@ class LabelRepo:
                 label.threads_unread,
                 label.color.text_color,
                 label.color.background_color,
-                user.pk,
+                self.user.pk,
             ))
 
         try:

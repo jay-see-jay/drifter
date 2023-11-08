@@ -6,7 +6,7 @@ from services.gmail import Gmail
 from repositories import *
 from models.user import User
 from stubs.gmail import *
-from utilities.general import process_message_part
+from utilities.general import process_message_part, create_label_messages_dict
 
 
 def handle_sync_gmail_mailbox(request: Request) -> Response:
@@ -40,7 +40,7 @@ def handle_sync_gmail_mailbox(request: Request) -> Response:
     headers: List[GmailHeader] = []
     messages: List[GmailMessage] = []
 
-    for t_id in threads:  # type: GmailThread
+    for t_id in threads:
         t = threads[t_id]
         messages.extend(t.messages)
 
@@ -63,9 +63,9 @@ def handle_sync_gmail_mailbox(request: Request) -> Response:
     thread_repo = ThreadRepo()
     thread_repo.create_many(list(threads.values()), user)
 
-    label_repo = LabelRepo()
-    label_repo.create_many(labels, user)
-    saved_labels = label_repo.get(user)
+    label_repo = LabelRepo(user)
+    label_repo.create_many(labels)
+    saved_labels = label_repo.get()
 
     message_repo = MessageRepo(user)
     message_repo.create_many(messages)
