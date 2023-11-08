@@ -16,20 +16,6 @@ class DictWithId(TypedDict):
     id: str
 
 
-class History(DictWithId, total=False):
-    messages: dict
-    messagesAdded: dict
-    messagesDeleted: dict
-    labelsAdded: dict
-    labelsRemoved: dict
-
-
-class HistoryResponse(TypedDict):
-    history: List[History]
-    nextPageToken: str
-    historyId: str
-
-
 class GmailMessagePartBody(TypedDict):
     attachmentId: str
     size: int
@@ -103,6 +89,8 @@ class GmailMessage:
                  internal_date: str,
                  payload: dict,
                  size_estimate: int,
+                 added_history_id: str = None,
+                 deleted_history_id: str = None,
                  ):
         self.message_id = message_id
         self.thread_id = thread_id
@@ -120,6 +108,8 @@ class GmailMessage:
             parts=payload.get('parts'),
         )
         self.size_estimate = size_estimate
+        self.added_history_id = added_history_id
+        self.deleted_history_id = deleted_history_id
 
 
 class GmailThread:
@@ -192,3 +182,26 @@ class GmailLabel:
             self.color = GmailLabelColor()
         else:
             self.color = GmailLabelColor(color.get('textColor'), color.get('backgroundColor'))
+
+
+class HistoryMessageChanged(TypedDict):
+    message: GmailMessage
+
+
+class HistoryLabelsChanged(TypedDict):
+    message: GmailMessage
+    labelIds: List[str]
+
+
+class History(DictWithId, total=False):
+    messages: dict
+    messagesAdded: List[HistoryMessageChanged]
+    messagesDeleted: List[HistoryMessageChanged]
+    labelsAdded: List[HistoryLabelsChanged]
+    labelsRemoved: List[HistoryLabelsChanged]
+
+
+class HistoryResponse(TypedDict):
+    history: List[History]
+    nextPageToken: str
+    historyId: str
