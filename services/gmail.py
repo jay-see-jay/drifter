@@ -152,11 +152,15 @@ class Gmail:
         # TODO : Uncomment
         # history_repo.create_many(history_list, self.user)
         message_history_ids: Dict[str, Set[str]] = dict()
+        labels_added_or_removed: Set[str] = set()
         for history_record in history_list:
             history_id = history_record.get('id')
-            messages_added = history_record.get('messagesAdded')
-            if not messages_added:
-                continue
+            messages_added = history_record.get('messagesAdded', [])
+            labels_added = history_record.get('labelsAdded', [])
+            labels_removed = history_record.get('labelsRemoved', [])
+            for changed_label in labels_added + labels_removed:
+                labels_added_or_removed.update(changed_label.get('labelIds', []))
+
             for message_added in messages_added:
                 message_id = message_added['message']['id']
                 if message_id not in message_history_ids:
@@ -187,9 +191,7 @@ class Gmail:
         message_ids_to_delete: List[Tuple[str, str]] = []
         for history_record in history_list:
             history_id = history_record.get('id')
-            messages_deleted = history_record.get('messagesDeleted')
-            if not messages_deleted:
-                continue
+            messages_deleted = history_record.get('messagesDeleted', [])
             for messages_deleted in messages_deleted:
                 message_id = messages_deleted['message']['id']
                 if message_id not in message_history_ids:
@@ -217,8 +219,8 @@ class Gmail:
         # part_repo.create_many(message_parts, self.user)
 
         label_messages = create_label_messages_dict(messages_list)
-        label_ids = list(label_messages.keys())
-        labels = self.get_labels(label_ids)
+        labels_added_or_removed.update(label_messages.keys())
+        labels = self.get_labels(list(labels_added_or_removed))
         # TODO: If no label, create label
         # TODO: Update messages_labels
         # TODO: Update messages_labels_history
