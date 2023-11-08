@@ -61,14 +61,14 @@ def handle_sync_gmail_mailbox(request: Request) -> Response:
     labels = gmail.get_labels(label_ids=label_ids)
 
     thread_repo = ThreadRepo()
-    thread_repo.create_many(threads.values(), user)
+    thread_repo.create_many(list(threads.values()), user)
 
     label_repo = LabelRepo()
     label_repo.create_many(labels, user)
     saved_labels = label_repo.get(user)
 
-    message_repo = MessageRepo()
-    message_repo.create_many(messages, user)
+    message_repo = MessageRepo(user)
+    message_repo.create_many(messages)
     message_repo.store_labels(label_messages, saved_labels)
 
     message_parts_repo = MessagePartRepo()

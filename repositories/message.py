@@ -1,4 +1,4 @@
-from typing import Dict, Set
+from typing import Dict, Set, Tuple
 import mysql.connector
 from services import Database
 from stubs.gmail import *
@@ -6,10 +6,11 @@ from models.user import User
 
 
 class MessageRepo:
-    def __init__(self):
+    def __init__(self, user: User):
         self.db = Database()
+        self.user = user
 
-    def create_many(self, messages: List[GmailMessage], user: User):
+    def create_many(self, messages: List[GmailMessage]):
         if len(messages) == 0:
             return
 
@@ -30,7 +31,7 @@ class MessageRepo:
             variables.append((
                 message.message_id,
                 message.snippet,
-                user.pk,
+                self.user.pk,
                 message.thread_id,
                 message.history_id,
                 message.internal_date,
@@ -41,6 +42,29 @@ class MessageRepo:
             self.db.insert_many(query, variables)
         except mysql.connector.Error as e:
             print(f'Failed to insert {len(messages)} messages into db: {e.msg}')
+
+    def create_history(self, message_history_ids: Dict[str, Set[str]]):
+        if len(message_history_ids) == 0:
+            return
+
+        columns = [
+            'message_id',
+            'history_id',
+        ]
+
+        query = self.db.create_query(columns, 'messages_history')
+
+        variables: List[Tuple[str, str]] = []
+
+        for message_id in message_history_ids:
+            history_ids = message_history_ids[message_id]
+            for history_id in history_ids:
+                variables.append((message_id, history_id))
+
+        try:
+            self.db.insert_many(query, variables)
+        except mysql.connector.Error as e:
+            print(f'Failed to insert history for {len(message_history_ids)} into db: {e.msg}')
 
     def store_labels(
         self,
