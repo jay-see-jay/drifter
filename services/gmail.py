@@ -229,8 +229,7 @@ class Gmail:
         # TODO : Ensure all the labels in labels_added and labels_removed are in the db
         existing_labels_dict = label_repo.get_all()
         for history_record in history_list:
-            message_repo.process_label_history(existing_labels_dict, history_record, 'added')
-            message_repo.process_label_history(existing_labels_dict, history_record, 'removed')
+            message_repo.process_label_history(existing_labels_dict, history_record)
 
         # TODO : Uncomment
         # message_repo.create_history(message_history_ids)
