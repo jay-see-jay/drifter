@@ -5,6 +5,7 @@ from typing import List
 from dotenv import load_dotenv
 
 from stubs.internal import Env
+from stubs.gmail import GmailLabel
 
 load_dotenv()
 
@@ -62,3 +63,28 @@ class Database:
         variables = ['%s'] * len(column_names)
         variables_str = ', '.join(variables)
         return f'INSERT INTO {table_name} ({columns_str}) VALUES ({variables_str})'
+
+    @staticmethod
+    def create_update_query(
+        column_names: List[str],
+        table_name: str,
+        filter_columns: List[str],
+    ) -> str:
+        def append_string_formatter(string: str) -> str:
+            return string + '=%s'
+            pass
+
+        column_strings = map(append_string_formatter, column_names)
+        filter_strings = map(append_string_formatter, filter_columns)
+        return f'UPDATE {table_name} SET {" ".join(column_strings)} WHERE {" ".join(filter_strings)}'
+
+    @staticmethod
+    def filter_changed_columns(existing: dict, updated: dict, columns: List[str]) -> List[str]:
+        changed_columns: List[str] = []
+        for column in columns:
+            if existing.get(column) == updated.get(column):
+                continue
+
+            changed_columns.append(column)
+
+        return changed_columns
