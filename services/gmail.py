@@ -221,10 +221,13 @@ class Gmail:
         label_messages = create_label_messages_dict(messages_list)
         labels_added_or_removed.update(label_messages.keys())
         labels = self.get_labels(list(labels_added_or_removed))
-        # TODO: If no label, create label
+        label_repo = LabelRepo(self.user)
+        # TODO : Uncomment
+        # for lbl in labels:
+        #   label_repo.upsert(lbl)
         # TODO: Update messages_labels
-        # TODO: Update messages_labels_history
         # TODO : Ensure all the labels in labels_added and labels_removed are in the db
+        # TODO: Update messages_labels_history
         # TODO : For each history record, create a corresponding `messages_labels_history` record
 
         # TODO : Uncomment
