@@ -158,15 +158,20 @@ class Gmail:
         if len(history_list) == 0:
             return
 
-        message_history_ids: Dict[str, str] = dict()
-        for history_record in history_list:  # type: History
+        message_history_ids: Dict[str, Set[str]] = dict()
+        for history_record in history_list:
             history_id = history_record.get('id')
-            messages_added = history_record.get('messagesAdded', [])  # type: List[HistoryMessageChanged]
-            for message_added in messages_added:
+            messages_added = history_record.get('messagesAdded')
+            if not messages_added:
+                continue
+            for message_added in messages_added:  # type: dict
                 message_id = message_added['message']['id']
-                message_history_ids[message_id] = history_id
+                if message_id not in message_history_ids:
+                    message_history_ids[message_id] = set()
 
-        messages = self.get_messages_by_ids(message_history_ids.keys())
+                message_history_ids[message_id].add(history_id)
+
+        messages = self.get_messages_by_ids(list(message_history_ids.keys()))
 
         thread_ids: Set[str] = set()
         for msg_id in messages:
@@ -183,25 +188,26 @@ class Gmail:
             # thread_repo.upsert(t, self.user)
 
             for msg in t.messages:  # type: GmailMessage
-                print('Added extra message from new thread')
                 if msg.message_id not in message_history_ids:
                     messages[msg.message_id] = msg
 
-        # TODO: Create messages
-        message_repo = MessageRepo()
-        message_repo.create_many(messages.values(), self.user)
-        # TODO: Create message_parts
-        # TODO: Create message_headers
+        messages_list = list(messages.values())
+        message_repo = MessageRepo(self.user)
+        # TODO : Uncomment
+        # message_repo.create_many(messages_list)
+        # TODO : Uncomment
+        # message_repo.create_history(message_history_ids)
         part_repo = MessagePartRepo()
         header_repo = HeaderRepo()
 
-        headers, message_parts = process_message_parts(messages)
-        header_repo.create_many(headers, self.user)
-        part_repo.create_many(message_parts, self.user)
+        headers, message_parts = process_message_parts(messages_list)
+        # TODO : Uncomment
+        # header_repo.create_many(headers, self.user)
+        # TODO : Uncomment
+        # part_repo.create_many(message_parts, self.user)
 
-        # TODO: Create messages_history
         # TODO: If no thread, create thread
-        thread_repo.create_many(threads.values(), self.user)
+        thread_repo.create_many(list(threads.values()), self.user)
         # TODO: If no label, create label
         label_messages: Dict[str, Set[str]] = dict()
         for msg in messages:
