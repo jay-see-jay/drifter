@@ -21,13 +21,13 @@ def handle_mailbox_change(cloud_event: CloudEvent) -> None:
     gmail = Gmail(user)
 
     history_list = gmail.get_history(history_id)
-    gmail.process_history(history_list, user)
+    gmail.process_history(history_list)
     return
 
     openai = OpenAI()
 
     for thread_id in changed_thread_ids:
-        thread = gmail.get_thread_by_id(thread_id)
+        thread = gmail.get_thread(thread_id)
 
         count = 0
         messages: List[ParsedMessage] = []
