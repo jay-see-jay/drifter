@@ -48,6 +48,10 @@ class Database:
 
         return response
 
+    def insert_one(self, query: str, variables: tuple):
+        self.ensure_connection()
+        self.cursor.execute(query, variables)
+
     def insert_many(self, query: str, variables: List[tuple]):
         self.ensure_connection()
         self.cursor.executemany(query, variables)
