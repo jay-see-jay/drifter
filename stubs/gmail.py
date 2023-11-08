@@ -184,17 +184,23 @@ class GmailLabel:
             self.color = GmailLabelColor(color.get('textColor'), color.get('backgroundColor'))
 
 
+class HistoryMessage(TypedDict, total=False):
+    id: str
+    threadId: str
+    labelIds: List[str]
+
+
 class HistoryMessageChanged(TypedDict):
-    message: GmailMessage
+    message: HistoryMessage
 
 
 class HistoryLabelsChanged(TypedDict):
-    message: GmailMessage
+    message: HistoryMessage
     labelIds: List[str]
 
 
 class History(DictWithId, total=False):
-    messages: dict
+    messages: List[HistoryMessage]
     messagesAdded: List[HistoryMessageChanged]
     messagesDeleted: List[HistoryMessageChanged]
     labelsAdded: List[HistoryLabelsChanged]
