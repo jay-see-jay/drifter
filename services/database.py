@@ -77,11 +77,11 @@ class Database:
 
         column_strings = map(self.append_string_formatter, column_names)
         filter_strings = map(self.append_string_formatter, filter_columns)
-        return f'UPDATE {table_name} SET {" ".join(column_strings)} WHERE {" ".join(filter_strings)}'
+        return f'UPDATE {table_name} SET {" ".join(column_strings)} WHERE {" AND ".join(filter_strings)}'
 
     def create_delete_query(self, filter_columns: List[str], table_name: str) -> str:
         filter_strings = map(self.append_string_formatter, filter_columns)
-        return f'DELETE FROM {table_name} WHERE {" ".join(filter_strings)}'
+        return f'DELETE FROM {table_name} WHERE {" AND ".join(filter_strings)}'
 
     @staticmethod
     def filter_changed_columns(existing: dict, updated: dict, columns: List[str]) -> List[str]:

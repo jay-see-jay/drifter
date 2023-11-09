@@ -136,7 +136,7 @@ class MessageRepo:
         try:
             self.db.insert_many(query, variables)
         except mysql.connector.Error as e:
-            print(f'Failed to edit labels: {e}')
+            print(f'Failed to edit labels (action: {action}): {e}')
 
         if history_id:
             self.store_messages_labels_history(variables, history_id, action)

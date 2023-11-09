@@ -144,7 +144,7 @@ class Gmail:
         except HttpError as e:
             raise e
 
-    def process_history(self, history_list: List[History]):
+    def process_history(self, start_history_id: str, history_list: List[History]):
         if len(history_list) == 0:
             return
 
@@ -225,7 +225,7 @@ class Gmail:
             message_repo.process_label_history(existing_labels_dict, history_record)
 
         message_repo.create_history(message_history_ids)
-        history_repo.mark_processed(history_list)
+        history_repo.mark_processed(start_history_id, history_list)
 
     def create_batch(self, callback):
         if self.batch is not None or self.batch_request_count != 0:
@@ -238,10 +238,12 @@ class Gmail:
         self.batch.add(request)
         self.batch_request_count += 1
         if self.batch_request_count >= self._batch_request_limit:
+            print('Executing batch...')
             self.batch.execute()
             self.batch_request_count = 0
 
     def finalise_batch(self):
+        print('Executing final batch...')
         self.batch.execute()
         self.batch_request_count = 0
         self.batch = None

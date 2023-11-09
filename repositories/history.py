@@ -13,14 +13,14 @@ class HistoryRepo:
         self.db = Database()
         self.user = user
 
-    def mark_processed(self, history_list: List[History]):
+    def mark_processed(self, start_history_id: str, history_list: List[History]):
         columns = [
             'id',
             'user_pk',
         ]
 
-        query = self.db.create_update_query(['created_at'], 'history', columns)
-        variables: List[Tuple[datetime, str, int]] = []
+        query = self.db.create_update_query(['processed_at'], 'history', columns)
+        variables: List[Tuple[datetime, str, int]] = [(datetime.now(), start_history_id, self.user.pk)]
 
         for history in history_list:
             history_id = history['id']

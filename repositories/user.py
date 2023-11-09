@@ -144,6 +144,15 @@ class UserRepo:
             raise e
 
     def get_latest_history_id(self, user: User) -> str:
+        history_query = query = f'SELECT id FROM history WHERE user_pk=%s AND processed_at IS NULL ORDER BY id ASC LIMIT 1;'
+        history_variables = (user.pk,)
+        try:
+            history_response = self.db.query(history_query, history_variables)
+            history_id = history_response[0].get('id')
+            return history_id
+        except mysql.connector.Error as e:
+            print(f'Failed to retrieve earliest unprocessed history record: {e}')
+
         tables = ['threads', 'messages']
         history_ids = []
         for table in tables:
