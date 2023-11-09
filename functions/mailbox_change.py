@@ -21,7 +21,9 @@ def handle_mailbox_change(cloud_event: CloudEvent) -> None:
     gmail = Gmail(user)
 
     history_list = gmail.get_history(history_id)
-    gmail.process_history(history_id, history_list)
+    if len(history_list) > 0:
+        gmail.process_history(history_id, history_list)
+
     return
 
     openai = OpenAI()
