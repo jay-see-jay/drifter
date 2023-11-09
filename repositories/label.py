@@ -56,8 +56,10 @@ class LabelRepo:
     def upsert(self, label: GmailLabel):
         existing_label = self.get(label)
         if existing_label:
+            print(f'Update existing label: {label.label_id}')
             self.update(existing_label, label)
         else:
+            print(f'Create new label: {label.label_id}')
             self.create_many([label])
 
     def update(self, existing: GmailLabel, updated: GmailLabel):
@@ -87,7 +89,7 @@ class LabelRepo:
         query = self.db.create_update_query(changed_columns, 'labels', filter_columns)
 
         try:
-            self.db.query(query, tuple(changed_variables) + filter_variables)
+            self.db.insert_one(query, tuple(changed_variables) + filter_variables)
         except mysql.connector.Error as e:
             print(f'Failed to update label: {e}')
 
