@@ -238,12 +238,10 @@ class Gmail:
         self.batch.add(request)
         self.batch_request_count += 1
         if self.batch_request_count >= self._batch_request_limit:
-            print('Executing batch...')
             self.batch.execute()
             self.batch_request_count = 0
 
     def finalise_batch(self):
-        print('Executing final batch...')
         self.batch.execute()
         self.batch_request_count = 0
         self.batch = None
