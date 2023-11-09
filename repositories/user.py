@@ -144,17 +144,32 @@ class UserRepo:
             raise e
 
     def get_latest_history_id(self, user: User) -> str:
-        history_query = query = f'SELECT id FROM history WHERE user_pk=%s AND processed_at IS NULL ORDER BY id ASC LIMIT 1;'
+        earlist_unproccessed_history_query = f'SELECT id FROM history WHERE user_pk=%s AND processed_at IS NULL ORDER BY id ASC LIMIT 1;'
         history_variables = (user.pk,)
         try:
-            history_response = self.db.query(history_query, history_variables)
-            history_id = history_response[0].get('id')
+            response = self.db.query(earlist_unproccessed_history_query, history_variables)
+            history_id = response[0].get('id')
             return history_id
         except mysql.connector.Error as e:
-            print(f'Failed to retrieve earliest unprocessed history record: {e}')
+            if e.msg == 'Not found':
+                print('No unproccessed history record found')
+            else:
+                print(f'Failed to retrieve unproccessed history record: {e}')
+
+        history_ids = []
+
+        last_processed_history_query = query = f'SELECT id FROM history WHERE user_pk=%s AND processed_at IS NOT NULL ORDER BY id DESC LIMIT 1;'
+        try:
+            response = self.db.query(last_processed_history_query, history_variables)
+            history_id = response[0].get('id')
+            history_ids.append(history_id)
+        except mysql.connector.Error as e:
+            if e.msg == 'Not found':
+                print('No processed history records found')
+            else:
+                print(f'Failed to retrieve latest processed history record: {e}')
 
         tables = ['threads', 'messages']
-        history_ids = []
         for table in tables:
             query = f'SELECT history_id FROM {table} WHERE user_pk=%s ORDER BY history_id DESC LIMIT 1;'
             variables = (user.pk,)
