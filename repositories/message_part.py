@@ -13,6 +13,7 @@ class MessagePartRepo:
 
     def create_many(self, parts: List[GmailMessagePart], user: User):
         if len(parts) == 0:
+            print('No message parts to save')
             return
 
         columns = [

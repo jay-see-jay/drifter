@@ -12,6 +12,7 @@ class HeaderRepo:
 
     def create_many(self, headers: List[GmailHeader], user: User):
         if len(headers) == 0:
+            print('No headers to add')
             return
 
         required_headers = ['date', 'from', 'sender', 'to', 'cc', 'bcc', 'subject']

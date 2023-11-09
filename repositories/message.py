@@ -14,6 +14,7 @@ class MessageRepo:
 
     def create_many(self, messages: List[GmailMessage]):
         if len(messages) == 0:
+            print('No new messages to create')
             return
 
         columns = [
@@ -47,6 +48,7 @@ class MessageRepo:
 
     def create_history(self, message_history_ids: Dict[str, Set[str]]):
         if len(message_history_ids) == 0:
+            print('No messages history to update')
             return
 
         columns = [
@@ -159,10 +161,16 @@ class MessageRepo:
         except mysql.connector.Error as e:
             print(f'Failed to add history record of change to message labels: {e}')
 
-    def mark_deleted(self, message_history_ids: List[Tuple[str, str]]):
+    def mark_deleted(self, message_history_ids: Dict[str, Set[str]]):
         query = 'UPDATE messages SET deleted_history_id="%s" WHERE id="%s"'
 
+        variables: List[Tuple[str, str]] = []
+
+        for message_id in message_history_ids:
+            history_id = list(message_history_ids[message_id])[0]
+            variables.append((history_id, message_id))
+
         try:
-            self.db.insert_many(query, message_history_ids)
+            self.db.insert_many(query, variables)
         except mysql.connector.Error as e:
             print(f'Failed to mark {len(message_history_ids)} as deleted: {e.msg}')
