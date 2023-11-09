@@ -151,29 +151,47 @@ class Gmail:
         history_repo = HistoryRepo(self.user)
         history_repo.create_many(history_list)
 
-        message_history_ids: Dict[str, Set[str]] = dict()
-        labels_added_or_removed: Set[str] = set()
+        all_message_ids: Dict[str, Set[str]] = dict()
+        added_message_ids: Dict[str, Set[str]] = dict()
+        deleted_message_ids: Dict[str, Set[str]] = dict()
+        label_ids: Set[str] = set()
+
         for history_record in history_list:
             history_id = history_record.get('id')
-            messages_added = history_record.get('messagesAdded', [])
+
+            all_affected_messages = history_record.get('messages', [])
+            for affected_message in all_affected_messages:
+                message_id = affected_message['id']
+                if message_id not in all_message_ids:
+                    all_message_ids[message_id] = set()
+                all_message_ids[message_id].add(history_id)
+
+            added_messages = history_record.get('messagesAdded', [])
+            for added_message in added_messages:
+                message_id = added_message['message']['id']
+                if message_id not in added_message_ids:
+                    added_message_ids[message_id] = set()
+                added_message_ids[message_id].add(history_id)
+
+            deleted_messages = history_record.get('messagesDeleted', [])
+            for deleted_message in deleted_messages:
+                message_id = deleted_message['message']['id']
+                if message_id not in deleted_message_ids:
+                    deleted_message_ids[message_id] = set()
+                deleted_message_ids[message_id].add(history_id)
+
             messages_with_labels_added = history_record.get('labelsAdded', [])
             messages_with_labels_removed = history_record.get('labelsRemoved', [])
             for changed_label in messages_with_labels_added + messages_with_labels_removed:
-                labels_added_or_removed.update(changed_label.get('labelIds', []))
+                changed_label_ids = changed_label.get('labelIds', [])
+                label_ids.update(changed_label_ids)
 
-            for message_added in messages_added:
-                message_id = message_added['message']['id']
-                if message_id not in message_history_ids:
-                    message_history_ids[message_id] = set()
-
-                message_history_ids[message_id].add(history_id)
-
-        messages = self.get_messages_by_ids(list(message_history_ids.keys()))
+        messages = self.get_messages_by_ids(list(added_message_ids))
 
         thread_ids: Set[str] = set()
         for msg_id in messages:
             msg = messages[msg_id]
-            msg.added_history_id = message_history_ids[msg_id]
+            msg.added_history_id = list(added_message_ids[msg_id])[0]
             thread_ids.add(msg.thread_id)
 
         threads = self.get_threads_by_ids(list(thread_ids))
@@ -183,30 +201,10 @@ class Gmail:
             t = threads[t_id]
             thread_repo.upsert(t, self.user)
 
-            for msg in t.messages:  # type: GmailMessage
-                if msg.message_id not in message_history_ids:
-                    messages[msg.message_id] = msg
-
-        message_ids_to_delete: List[Tuple[str, str]] = []
-        for history_record in history_list:
-            history_id = history_record.get('id')
-            messages_deleted = history_record.get('messagesDeleted', [])
-            for messages_deleted in messages_deleted:
-                message_id = messages_deleted['message']['id']
-                if message_id not in message_history_ids:
-                    message_history_ids[message_id] = set()
-
-                message_history_ids[message_id].add(history_id)
-
-                if message_id in messages:
-                    messages[message_id].deleted_history_id = history_id
-                else:
-                    message_ids_to_delete.append((message_id, history_id))
-
         messages_list = list(messages.values())
         message_repo = MessageRepo(self.user)
         message_repo.create_many(messages_list)
-        message_repo.mark_deleted(message_ids_to_delete)
+        message_repo.mark_deleted(deleted_message_ids)
         part_repo = MessagePartRepo()
         header_repo = HeaderRepo()
 
@@ -214,9 +212,7 @@ class Gmail:
         header_repo.create_many(headers, self.user)
         part_repo.create_many(message_parts, self.user)
 
-        label_messages = create_label_messages_dict(messages_list)
-        labels_added_or_removed.update(label_messages.keys())
-        labels = self.get_labels(list(labels_added_or_removed))
+        labels = self.get_labels(list(label_ids))
         label_repo = LabelRepo(self.user)
         for lbl in labels:
             label_repo.upsert(lbl)
@@ -224,7 +220,7 @@ class Gmail:
         for history_record in history_list:
             message_repo.process_label_history(existing_labels_dict, history_record)
 
-        message_repo.create_history(message_history_ids)
+        message_repo.create_history(all_message_ids)
         history_repo.mark_processed(start_history_id, history_list)
 
     def create_batch(self, callback):
