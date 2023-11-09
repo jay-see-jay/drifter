@@ -13,13 +13,11 @@ def handle_mailbox_change(cloud_event: CloudEvent) -> None:
     cloud_event_data = Gmail.decode_cloud_event(cloud_event)
 
     email = cloud_event_data['emailAddress']
-
     user_repo = UserRepo()
     user = user_repo.get_by_email(email)
+
     history_id = user_repo.get_latest_history_id(user)
-
     gmail = Gmail(user)
-
     history_list = gmail.get_history(history_id)
     if len(history_list) > 0:
         gmail.process_history(history_id, history_list)
