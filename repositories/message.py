@@ -112,9 +112,8 @@ class MessageRepo:
         action: MessageLabelHistoryAction,
         history_id: str = None,
     ):
-        # TODO : Make sure this does the right thing
-        if action != 'added' or action != 'removed':
-            raise Exception('Action must be one of "action" or "removed"')
+        if not (action == 'added' or action == 'removed'):
+            raise Exception('Action must be one of "added" or "removed"')
 
         variables: List[Tuple[int, str]] = []
 
@@ -124,6 +123,9 @@ class MessageRepo:
             message_labels = [(label_pk_dict[label_id], message_id) for label_id in label_ids]
             variables.extend(message_labels)
 
+        if len(variables) == 0:
+            return
+
         columns = ['label_pk', 'message_id']
         query: str
         if action == 'added':
@@ -131,11 +133,10 @@ class MessageRepo:
         else:
             query = self.db.create_delete_query(columns, 'messages_labels')
 
-        # TODO : Uncomment
-        # try:
-        #     self.db.insert_many(query, variables)
-        # except mysql.connector.Error as e:
-        #     print(f'Failed to edit labels: {e}')
+        try:
+            self.db.insert_many(query, variables)
+        except mysql.connector.Error as e:
+            print(f'Failed to edit labels: {e}')
 
         if history_id:
             self.store_messages_labels_history(variables, history_id, action)
@@ -146,7 +147,6 @@ class MessageRepo:
         history_id: str,
         action: MessageLabelHistoryAction,
     ):
-        # TODO : Make sure this behaves as expected
         columns = ['label_pk', 'message_id', 'history_id', 'action']
         query = self.db.create_query(columns, 'messages_labels_history')
         variables: List[Tuple[int, str, str, MessageLabelHistoryAction]] = []
@@ -154,13 +154,13 @@ class MessageRepo:
         for label_pk_message in label_pk_messages:
             variables.append(label_pk_message + (history_id, action))
 
-        # TODO : Add query
+        try:
+            self.db.insert_many(query, variables)
+        except mysql.connector.Error as e:
+            print(f'Failed to add history record of change to message labels: {e}')
 
     def mark_deleted(self, message_history_ids: List[Tuple[str, str]]):
         query = 'UPDATE messages SET deleted_history_id="%s" WHERE id="%s"'
-
-        print('query', query)
-        print('message_history_ids', message_history_ids)
 
         try:
             self.db.insert_many(query, message_history_ids)

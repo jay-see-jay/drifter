@@ -148,9 +148,9 @@ class Gmail:
         if len(history_list) == 0:
             return
 
-        history_repo = HistoryRepo()
-        # TODO : Uncomment
-        # history_repo.create_many(history_list, self.user)
+        history_repo = HistoryRepo(self.user)
+        history_repo.create_many(history_list)
+
         message_history_ids: Dict[str, Set[str]] = dict()
         labels_added_or_removed: Set[str] = set()
         for history_record in history_list:
@@ -181,8 +181,7 @@ class Gmail:
         thread_repo = ThreadRepo()
         for t_id in threads:
             t = threads[t_id]
-            # TODO : Uncomment
-            # thread_repo.upsert(t, self.user)
+            thread_repo.upsert(t, self.user)
 
             for msg in t.messages:  # type: GmailMessage
                 if msg.message_id not in message_history_ids:
@@ -206,34 +205,27 @@ class Gmail:
 
         messages_list = list(messages.values())
         message_repo = MessageRepo(self.user)
-        # TODO : Uncomment
-        # message_repo.create_many(messages_list)
-        # message_repo.mark_deleted(message_ids_to_delete)
+        message_repo.create_many(messages_list)
+        message_repo.mark_deleted(message_ids_to_delete)
         part_repo = MessagePartRepo()
         header_repo = HeaderRepo()
 
         headers, message_parts = process_message_parts(messages_list)
-        # TODO : Uncomment
-        # header_repo.create_many(headers, self.user)
-        # TODO : Uncomment
-        # part_repo.create_many(message_parts, self.user)
+        header_repo.create_many(headers, self.user)
+        part_repo.create_many(message_parts, self.user)
 
         label_messages = create_label_messages_dict(messages_list)
         labels_added_or_removed.update(label_messages.keys())
         labels = self.get_labels(list(labels_added_or_removed))
         label_repo = LabelRepo(self.user)
-        # TODO : Uncomment
-        # for lbl in labels:
-        #   label_repo.upsert(lbl)
-        # TODO: Update messages_labels
-        # TODO : Ensure all the labels in labels_added and labels_removed are in the db
+        for lbl in labels:
+            label_repo.upsert(lbl)
         existing_labels_dict = label_repo.get_all()
         for history_record in history_list:
             message_repo.process_label_history(existing_labels_dict, history_record)
 
-        # TODO : Uncomment
-        # message_repo.create_history(message_history_ids)
-        # TODO : Finish by updating `processed_at` column
+        message_repo.create_history(message_history_ids)
+        history_repo.mark_processed(history_list)
 
     def create_batch(self, callback):
         if self.batch is not None or self.batch_request_count != 0:
