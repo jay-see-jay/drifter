@@ -77,7 +77,7 @@ class Database:
 
         column_strings = map(self.append_string_formatter, column_names)
         filter_strings = map(self.append_string_formatter, filter_columns)
-        return f'UPDATE {table_name} SET {" ".join(column_strings)} WHERE {" AND ".join(filter_strings)}'
+        return f'UPDATE {table_name} SET {", ".join(column_strings)} WHERE {" AND ".join(filter_strings)}'
 
     def create_delete_query(self, filter_columns: List[str], table_name: str) -> str:
         filter_strings = map(self.append_string_formatter, filter_columns)
