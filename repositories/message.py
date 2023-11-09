@@ -162,7 +162,11 @@ class MessageRepo:
             print(f'Failed to add history record of change to message labels: {e}')
 
     def mark_deleted(self, message_history_ids: Dict[str, Set[str]]):
-        query = 'UPDATE messages SET deleted_history_id="%s" WHERE id="%s"'
+        if len(message_history_ids) == 0:
+            print('No messages to mark as deleted')
+            return
+
+        query = 'UPDATE messages SET deleted_history_id=%s WHERE id=%s'
 
         variables: List[Tuple[str, str]] = []
 
@@ -171,6 +175,8 @@ class MessageRepo:
             variables.append((history_id, message_id))
 
         try:
+            print('query', query)
+            print('variables', variables)
             self.db.insert_many(query, variables)
         except mysql.connector.Error as e:
             print(f'Failed to mark {len(message_history_ids)} as deleted: {e.msg}')
