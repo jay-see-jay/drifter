@@ -3,6 +3,8 @@ import sys
 
 from datetime import datetime
 
+import mysql.connector
+
 from services.database import Database
 from stubs.internal import Migration
 
@@ -38,9 +40,13 @@ try:
     if len(result) > 0:
         print('Migration has already been completed')
         sys.exit(1)
-except Exception as e:
-    print('Could not access db to check if migration has run before')
-    sys.exit(1)
+except mysql.connector.Error as e:
+    if e.msg == 'Not found':
+        print('Migration has not been run before')
+    else:
+        print('Could not access db to check if migration has run before')
+        print(e)
+        sys.exit(1)
 
 with open(file_path, 'r') as file:
     query = file.read()
@@ -48,9 +54,12 @@ with open(file_path, 'r') as file:
 print('Running migration...')
 try:
     db.query(query, ())
-except Exception as e:
-    print(f'Failed to run migration: {e}')
-    sys.exit(1)
+except mysql.connector.Error as e:
+    if e.msg == 'Not found':
+        print('Migration succeeded')
+    else:
+        print(f'Failed to run migration: {e}')
+        sys.exit(1)
 
 print('Updating migration status...')
 
@@ -62,5 +71,8 @@ variables = (migration.name, migration.date, datetime.now())
 
 try:
     db.query(insert, variables)
-except Exception as e:
-    print(f'Failed to update migration record: {e}')
+except mysql.connector.Error as e:
+    if e.msg == 'Not found':
+        print('Complete.')
+    else:
+        print(f'Failed to update migration record: {e}')

@@ -1,3 +1,4 @@
+import mysql.connector
 from services.database import Database
 from stubs.internal import Migration
 
@@ -34,7 +35,11 @@ for migration in dev_migrations:
         print(f'{migration.name} is already in the main branch')
     else:
         print(f'Syncing {migration.name} to main branch')
-        main_db.query(
-            'INSERT INTO migrations (name, date, completed_at) VALUES (%s, %s, %s);',
-            (migration.name, migration.date, migration.completed_at),
-        )
+        try:
+            main_db.query(
+                'INSERT INTO migrations (name, date, completed_at) VALUES (%s, %s, %s);',
+                (migration.name, migration.date, migration.completed_at),
+            )
+        except mysql.connector.Error as e:
+            if e.msg != 'Not found':
+                print(e)
