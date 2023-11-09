@@ -1,5 +1,6 @@
 ALTER TABLE labels
 DROP
 PRIMARY KEY,
+DROP INDEX pk,
 	ADD PRIMARY KEY (pk),
-	ADD UNIQUE KEY (id, user_pk);
+	ADD UNIQUE KEY (user_pk, id);
