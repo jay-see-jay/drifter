@@ -1,3 +1,4 @@
+import json
 from typing import List
 
 from cloudevents.http import CloudEvent
@@ -20,7 +21,9 @@ def handle_mailbox_change(cloud_event: CloudEvent) -> None:
     print('history_id', history_id)
     gmail = Gmail(user)
     history_list = gmail.get_history(history_id)
-    print('history_list', history_list)
+
+    with open('output.json', 'w') as json_file:
+        json.dump(history_list, json_file)
 
     if len(history_list) > 0:
         gmail.process_history(history_id, history_list)
