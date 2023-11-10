@@ -86,9 +86,9 @@ class GmailMessage:
                  label_ids: List[str],
                  snippet: str,
                  history_id: str,
-                 internal_date: str,
-                 payload: dict,
+                 internal_date: str | datetime,
                  size_estimate: int,
+                 payload: dict = None,
                  added_history_id: str = None,
                  deleted_history_id: str = None,
                  ):
@@ -97,16 +97,22 @@ class GmailMessage:
         self.label_ids = label_ids if label_ids else []
         self.snippet = snippet
         self.history_id = history_id
-        self.internal_date = datetime.fromtimestamp(float(internal_date) / 1000)
-        self.payload = GmailMessagePart(
-            message_id=message_id,
-            part_id=payload.get('partId'),
-            mime_type=payload.get('mimeType'),
-            filename=payload.get('filename'),
-            headers=payload.get('headers'),
-            body=payload.get('body'),
-            parts=payload.get('parts'),
-        )
+        if isinstance(internal_date, datetime):
+            self.internal_date = datetime
+        else:
+            self.internal_date = datetime.fromtimestamp(float(internal_date) / 1000)
+        if payload:
+            self.payload = GmailMessagePart(
+                message_id=message_id,
+                part_id=payload.get('partId'),
+                mime_type=payload.get('mimeType'),
+                filename=payload.get('filename'),
+                headers=payload.get('headers'),
+                body=payload.get('body'),
+                parts=payload.get('parts'),
+            )
+        else:
+            self.payload = payload
         self.size_estimate = size_estimate
         self.added_history_id = added_history_id
         self.deleted_history_id = deleted_history_id
