@@ -26,7 +26,6 @@ class MessageRepo:
                 snippet=result.get('snippet'),
                 history_id=result.get('history_id'),
                 internal_date=result.get('internal_date'),
-                payload=result.get('payload'),
                 size_estimate=result.get('size_estimate'),
                 added_history_id=result.get('added_history_id'),
                 deleted_history_id=result.get('deleted_history_id'),
