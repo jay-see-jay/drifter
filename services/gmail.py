@@ -162,6 +162,7 @@ class Gmail:
             all_affected_messages = history_record.get('messages', [])
             for affected_message in all_affected_messages:
                 message_id = affected_message['id']
+                label_ids.update(affected_message.get('labelIds', []))
                 if message_id not in all_message_ids:
                     all_message_ids[message_id] = set()
                 all_message_ids[message_id].add(history_id)
@@ -196,7 +197,7 @@ class Gmail:
         for msg_id in messages:
             msg = messages[msg_id]
             if msg_id in added_message_ids:
-                msg.added_history_id = list(added_message_ids[msg_id])[0]
+                msg.added_history_id = min(added_message_ids[msg_id])
             thread_ids.add(msg.thread_id)
 
         threads = self.get_threads_by_ids(list(thread_ids))
@@ -208,6 +209,16 @@ class Gmail:
 
         messages_list = list(messages.values())
         message_repo = MessageRepo(self.user)
+
+        labels = self.get_labels(list(label_ids))
+        label_repo = LabelRepo(self.user)
+        for lbl in labels:
+            label_repo.upsert(lbl)
+
+        existing_labels_dict = label_repo.get_all()
+        for history_record in history_list:
+            message_repo.process_label_history(existing_labels_dict, history_record)
+
         message_repo.create_many(messages_list)
         message_repo.delete(deleted_message_ids)
         part_repo = MessagePartRepo()
@@ -216,14 +227,6 @@ class Gmail:
         headers, message_parts = process_message_parts(messages_list)
         header_repo.create_many(headers, self.user)
         part_repo.create_many(message_parts, self.user)
-
-        labels = self.get_labels(list(label_ids))
-        label_repo = LabelRepo(self.user)
-        for lbl in labels:
-            label_repo.upsert(lbl)
-        existing_labels_dict = label_repo.get_all()
-        for history_record in history_list:
-            message_repo.process_label_history(existing_labels_dict, history_record)
 
         message_repo.create_history(all_message_ids)
         history_repo.mark_processed(start_history_id, history_list)
