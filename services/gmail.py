@@ -186,12 +186,17 @@ class Gmail:
                 changed_label_ids = changed_label.get('labelIds', [])
                 label_ids.update(changed_label_ids)
 
-        messages = self.get_messages_by_ids(list(added_message_ids))
+        for deleted_message_id in deleted_message_ids:
+            if deleted_message_id in all_message_ids:
+                del all_message_ids[deleted_message_id]
+
+        messages = self.get_messages_by_ids(set(all_message_ids.keys()))
 
         thread_ids: Set[str] = set()
         for msg_id in messages:
             msg = messages[msg_id]
-            msg.added_history_id = list(added_message_ids[msg_id])[0]
+            if msg_id in added_message_ids:
+                msg.added_history_id = list(added_message_ids[msg_id])[0]
             thread_ids.add(msg.thread_id)
 
         threads = self.get_threads_by_ids(list(thread_ids))
@@ -204,7 +209,7 @@ class Gmail:
         messages_list = list(messages.values())
         message_repo = MessageRepo(self.user)
         message_repo.create_many(messages_list)
-        message_repo.mark_deleted(deleted_message_ids)
+        message_repo.delete(deleted_message_ids)
         part_repo = MessagePartRepo()
         header_repo = HeaderRepo()
 
@@ -291,15 +296,17 @@ class Gmail:
 
         return threads
 
-    def get_messages_by_ids(self, message_ids: List[str]) -> Dict[str, GmailMessage]:
+    def get_messages_by_ids(self, message_ids: Set[str]) -> Dict[str, GmailMessage]:
+        print('messages to get: ', len(message_ids))
         messages: Dict[str, GmailMessage] = dict()
 
         if len(message_ids) == 0:
             return messages
 
-        def process_message_response(response_id: str, response: dict, exception):
-            if exception is not None:
-                print(f'Response ID: {response_id} - failed to get message.\n{exception}')
+        def process_message_response(response_id: str, response: dict, exception: HttpError):
+            if exception:
+                # print(f'{exception.uri}: {exception.reason}')\\
+                return
             else:
                 msg_id = response.get('id')
                 messages[msg_id] = GmailMessage(

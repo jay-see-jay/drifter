@@ -1,4 +1,4 @@
-from typing import Dict, Set, Tuple
+from typing import Dict, Set, Tuple, Optional
 import mysql.connector
 from services import Database
 from stubs.gmail import *
@@ -11,6 +11,31 @@ class MessageRepo:
     def __init__(self, user: User):
         self.db = Database()
         self.user = user
+
+    def get(self, message_id: str) -> Optional[GmailMessage]:
+        query = 'SELECT * FROM messages WHERE id=%s'
+        variables = (message_id,)
+
+        try:
+            response = self.db.query(query, variables)
+            result = response[0]
+            return GmailMessage(
+                message_id=result.get('id'),
+                thread_id=result.get('thread_id'),
+                label_ids=[],
+                snippet=result.get('snippet'),
+                history_id=result.get('history_id'),
+                internal_date=result.get('internal_date'),
+                payload=result.get('payload'),
+                size_estimate=result.get('size_estimate'),
+                added_history_id=result.get('added_history_id'),
+                deleted_history_id=result.get('deleted_history_id'),
+            )
+        except mysql.connector.Error as e:
+            if e.msg == 'Not found':
+                return None
+            else:
+                print(f'Failed to get message from db: {e}')
 
     def create_many(self, messages: List[GmailMessage]):
         if len(messages) == 0:
@@ -161,22 +186,36 @@ class MessageRepo:
         except mysql.connector.Error as e:
             print(f'Failed to add history record of change to message labels: {e}')
 
-    def mark_deleted(self, message_history_ids: Dict[str, Set[str]]):
+    def delete(self, message_history_ids: Dict[str, Set[str]]):
         if len(message_history_ids) == 0:
-            print('No messages to mark as deleted')
+            print('No messages to delete')
             return
 
-        query = 'UPDATE messages SET deleted_history_id=%s WHERE id=%s'
+        tables = [
+            'message_headers',
+            'message_parts',
+            'messages_history',
+            'messages_labels',
+            'messages_labels_history',
+        ]
 
-        variables: List[Tuple[str, str]] = []
+        queries = [
+            self.db.create_delete_query(['id'], 'messages'),
+        ]
+
+        for table in tables:
+            query = self.db.create_delete_query(['message_id'], table)
+            queries.append(query)
+
+        variables: List[Tuple[str]] = []
 
         for message_id in message_history_ids:
-            history_id = list(message_history_ids[message_id])[0]
-            variables.append((history_id, message_id))
+            message = self.get(message_id)
+            if message:
+                variables.append((message_id,))
 
-        try:
-            print('query', query)
-            print('variables', variables)
-            self.db.insert_many(query, variables)
-        except mysql.connector.Error as e:
-            print(f'Failed to mark {len(message_history_ids)} as deleted: {e.msg}')
+        for query in queries:
+            try:
+                self.db.insert_many(query, variables)
+            except mysql.connector.Error as e:
+                print(f'Failed to execute query: {query}\n{e.msg}')
