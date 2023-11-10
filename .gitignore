@@ -5,3 +5,4 @@ __pycache__/
 .env*
 .editorconfig
 .DS_Store
+output.json
