@@ -219,7 +219,7 @@ class Gmail:
         for history_record in history_list:
             message_repo.process_label_history(existing_labels_dict, history_record)
 
-        message_repo.create_many(messages_list)
+        message_repo.create_many(messages_list, existing_labels_dict)
         message_repo.delete(deleted_message_ids)
         part_repo = MessagePartRepo()
         header_repo = HeaderRepo()

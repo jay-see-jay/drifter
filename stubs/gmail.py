@@ -94,7 +94,7 @@ class GmailMessage:
                  ):
         self.message_id = message_id
         self.thread_id = thread_id
-        self.label_ids = label_ids
+        self.label_ids = label_ids if label_ids else []
         self.snippet = snippet
         self.history_id = history_id
         self.internal_date = datetime.fromtimestamp(float(internal_date) / 1000)

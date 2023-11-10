@@ -37,7 +37,7 @@ class MessageRepo:
             else:
                 print(f'Failed to get message from db: {e}')
 
-    def create_many(self, messages: List[GmailMessage]):
+    def create_many(self, messages: List[GmailMessage], label_pks: Dict[str, int], ):
         if len(messages) == 0:
             print('No new messages to create')
             return
@@ -56,9 +56,23 @@ class MessageRepo:
         query = self.db.create_query(columns, 'messages')
 
         variables: List[Tuple[str, str, int, str, str, datetime, str, int]] = []
-        label_ids: Set[str] = set()
+        label_message_ids: Dict[str, Set[str]] = dict()
+        history_label_message_ids: Dict[str, List[Tuple[int, str]]] = dict()
+
         for message in messages:
-            label_ids.update(message.label_ids)
+            history_id = message.added_history_id if message.added_history_id else message.history_id
+            if history_id not in history_label_message_ids:
+                history_label_message_ids[history_id] = []
+
+            for label_id in message.label_ids:
+                label_pk = label_pks[label_id]
+                history_label_message_ids[history_id].append((label_pk, message.message_id))
+
+                if label_id not in label_message_ids:
+                    label_message_ids[label_id] = set()
+
+                label_message_ids[label_id].add(message.message_id)
+
             variables.append((
                 message.message_id,
                 message.snippet,
@@ -74,6 +88,15 @@ class MessageRepo:
             self.db.insert_many(query, variables)
         except mysql.connector.Error as e:
             print(f'Failed to insert {len(messages)} messages into db: {e.msg}')
+
+        self.store_labels(label_message_ids, label_pks)
+
+        for history_id in history_label_message_ids:
+            self.store_messages_labels_history(
+                history_label_message_ids[history_id],
+                history_id,
+                'added',
+            )
 
     def create_history(self, message_history_ids: Dict[str, Set[str]]):
         if len(message_history_ids) == 0:
@@ -123,10 +146,11 @@ class MessageRepo:
         except mysql.connector.Error as e:
             print(f'Failed to create relations between messages and {len(label_messages)} labels: {e.msg}')
 
-    def process_label_history(self,
-                              label_pk_dict: Dict[str, int],
-                              history_record: History,
-                              ):
+    def process_label_history(
+        self,
+        label_pk_dict: Dict[str, int],
+        history_record: History,
+    ):
 
         history_id = history_record['id']
 
