@@ -49,13 +49,16 @@ class MessageRepo:
             'thread_id',
             'history_id',
             'internal_date',
+            'added_history_id',
             'size_estimate',
         ]
 
         query = self.db.create_query(columns, 'messages')
 
-        variables: List[tuple] = []
-        for message in messages:  # type: GmailMessage
+        variables: List[Tuple[str, str, int, str, str, datetime, str, int]] = []
+        label_ids: Set[str] = set()
+        for message in messages:
+            label_ids.update(message.label_ids)
             variables.append((
                 message.message_id,
                 message.snippet,
@@ -63,6 +66,7 @@ class MessageRepo:
                 message.thread_id,
                 message.history_id,
                 message.internal_date,
+                message.added_history_id,
                 message.size_estimate,
             ))
 
