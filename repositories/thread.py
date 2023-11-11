@@ -41,6 +41,8 @@ class ThreadRepo:
         if len(threads) == 0:
             return
 
+        # TODO : Check thread ids and remove any that are already in the db
+
         columns = [
             'id',
             'snippet',

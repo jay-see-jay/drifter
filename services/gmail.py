@@ -191,7 +191,17 @@ class Gmail:
             if deleted_message_id in all_message_ids:
                 del all_message_ids[deleted_message_id]
 
-        messages = self.get_messages_by_ids(set(all_message_ids.keys()))
+        message_repo = MessageRepo(self.user)
+
+        existing_messages = message_repo.get_by_ids(set(all_message_ids.keys()))
+        existing_message_ids = [msg.message_id for msg in existing_messages]
+
+        new_message_ids: Set[str] = set()
+        for msg_id in all_message_ids:
+            if msg_id not in existing_message_ids:
+                new_message_ids.add(msg_id)
+
+        messages = self.get_messages_by_ids(new_message_ids)
 
         thread_ids: Set[str] = set()
         for msg_id in messages:
@@ -208,7 +218,6 @@ class Gmail:
             thread_repo.upsert(t, self.user)
 
         messages_list = list(messages.values())
-        message_repo = MessageRepo(self.user)
 
         labels = self.get_labels(list(label_ids))
         label_repo = LabelRepo(self.user)

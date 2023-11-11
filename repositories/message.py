@@ -36,10 +36,41 @@ class MessageRepo:
             else:
                 print(f'Failed to get message from db: {e}')
 
+    def get_by_ids(self, message_ids: Set[str]) -> List[GmailMessage]:
+        if len(message_ids) == 0:
+            return []
+
+        query = 'SELECT * FROM messages WHERE id IN(%s)'
+
+        try:
+            response = self.db.query(query, (list(message_ids),))
+            messages: List[GmailMessage] = []
+
+            for row in response:
+                messages.append(GmailMessage(
+                    message_id=row.get('id'),
+                    thread_id=row.get('thread_id'),
+                    label_ids=[],
+                    snippet=row.get('snippet'),
+                    history_id=row.get('history_id'),
+                    internal_date=row.get('internal_date'),
+                    size_estimate=row.get('size_estimate'),
+                    added_history_id=row.get('added_history_id'),
+                    deleted_history_id=row.get('deleted_history_id'),
+                ))
+
+            return messages
+        except mysql.connector.Error as e:
+            if e.msg == 'Not found':
+                return []
+            else:
+                print(f'Failed to get messages from db: {e}')
+
     def create_many(self, messages: List[GmailMessage], label_pks: Dict[str, int], ):
         if len(messages) == 0:
-            print('No new messages to create')
             return
+
+        # TODO : Filter out messages that are already in db
 
         columns = [
             'id',
@@ -126,6 +157,7 @@ class MessageRepo:
         label_messages: Dict[str, Set[str]],
         label_pks: Dict[str, int],
     ):
+        # TODO : Remove any label relationships that are already in the db
         variables: List[tuple] = []
         for label_id in label_messages:  # type: str
             label_pk = label_pks.get(label_id)

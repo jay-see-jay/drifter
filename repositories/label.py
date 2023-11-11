@@ -1,4 +1,4 @@
-from typing import List, Optional, Dict
+from typing import List, Optional, Dict, Set
 import mysql.connector
 
 from services.database import Database
@@ -11,31 +11,54 @@ class LabelRepo:
         self.db = Database()
         self.user = user
 
+    @staticmethod
+    def instantiate_label(row: dict) -> GmailLabel:
+        return GmailLabel(
+            label_id=row.get('id'),
+            name=row.get('name'),
+            label_type=row.get('type'),
+            message_list_visibility=row.get('message_list_visibility'),
+            label_list_visibility=row.get('label_list_visibility'),
+            messages_total=row.get('messages_total'),
+            messages_unread=row.get('messages_unread'),
+            threads_total=row.get('threads_total'),
+            threads_unread=row.get('threads_unread'),
+            color={
+                'text_color': row.get('text_color'),
+                'background_color': row.get('background_color')
+            },
+        )
+
     def get(self, label: GmailLabel) -> Optional[GmailLabel]:
         query = 'SELECT * FROM labels WHERE id=%s AND user_pk=%s LIMIT 1'
         variables = (label.label_id, self.user.pk)
         try:
             response = self.db.query(query, variables)
-            label_dict = response[0]
-            return GmailLabel(
-                label_id=label_dict.get('id'),
-                name=label_dict.get('name'),
-                label_type=label_dict.get('type'),
-                message_list_visibility=label_dict.get('message_list_visibility'),
-                label_list_visibility=label_dict.get('label_list_visibility'),
-                messages_total=label_dict.get('messages_total'),
-                messages_unread=label_dict.get('messages_unread'),
-                threads_total=label_dict.get('threads_total'),
-                threads_unread=label_dict.get('threads_unread'),
-                color={
-                    'text_color': label_dict.get('text_color'),
-                    'background_color': label_dict.get('background_color')
-                },
-            )
+            return self.instantiate_label(response[0])
         except mysql.connector.Error as e:
             if e.msg == 'Not found':
                 return None
             print(f'Could not retrieve label from db: {e}')
+
+    def get_by_ids(self, label_ids: Set[str]) -> List[GmailLabel]:
+        if len(label_ids) == 0:
+            return []
+
+        query = 'SELECT * FROM messages WHERE id IN(%s) AND user_pk=%s'
+
+        try:
+            response = self.db.query(query, (list(label_ids), self.user.pk))
+            labels: List[GmailLabel] = []
+
+            for row in response:
+                labels.append(self.instantiate_label(row))
+
+            return labels
+        except mysql.connector.Error as e:
+            if e.msg == 'Not found':
+                return []
+            else:
+                print(f'Failed to get labels from db: {e}')
 
     def get_all(self) -> Dict[str, int]:
         query = 'SELECT pk, id FROM labels WHERE user_pk = %s'
@@ -92,8 +115,17 @@ class LabelRepo:
             self.db.insert_one(query, tuple(changed_variables) + filter_variables)
         except mysql.connector.Error as e:
             print(f'Failed to update label: {e}')
+            print('query', query)
 
     def create_many(self, labels: List[GmailLabel]):
+        if len(labels) == 0:
+            return
+
+        label_ids = [label.label_id for label in labels]
+        existing_labels = self.get_by_ids(set(label_ids))
+        existing_label_ids = [existing_label.label_id for existing_label in existing_labels]
+        # TODO : Filter labels to remove any that have IDs that are in existing_labels
+
         columns = [
             'id',
             'name',
