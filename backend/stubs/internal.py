@@ -1,4 +1,4 @@
-from typing import TypedDict, Literal
+from typing import TypedDict, Literal, Optional
 from datetime import datetime
 
 Env = Literal['production', 'development']
@@ -20,7 +20,7 @@ class Migration:
     def __init__(self,
                  name: str,
                  date: datetime,
-                 completed_at: datetime | None,
+                 completed_at: Optional[datetime],
                  ):
         self.name = name
         self.date = date

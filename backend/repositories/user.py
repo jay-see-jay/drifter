@@ -6,7 +6,7 @@ from dotenv import load_dotenv
 from google.oauth2.credentials import Credentials
 from flask import Request
 from werkzeug.exceptions import HTTPException
-from typing import List
+from typing import List, Optional
 
 from services.database import Database
 from utilities.user_utils import get_user_id_from_path
@@ -24,7 +24,7 @@ class UserRepo:
     def encrypt(self, text: str):
         return self.f.encrypt(bytes(text, 'utf-8'))
 
-    def decrypt(self, text: bytes | None):
+    def decrypt(self, text: Optional[bytes]):
         if not text:
             return text
 

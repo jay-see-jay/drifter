@@ -86,7 +86,7 @@ class GmailMessage:
                  label_ids: List[str],
                  snippet: str,
                  history_id: str,
-                 internal_date: str | datetime,
+                 internal_date: Optional[str],
                  size_estimate: int,
                  payload: dict = None,
                  added_history_id: str = None,

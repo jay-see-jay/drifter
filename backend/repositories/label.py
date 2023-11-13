@@ -81,6 +81,9 @@ class LabelRepo:
 
         updated_dict = updated.__dict__
         changed_columns = self.db.filter_changed_columns(existing.__dict__, updated_dict, columns)
+        if len(changed_columns) == 0:
+            return
+
         changed_variables = []
 
         for col in changed_columns:
