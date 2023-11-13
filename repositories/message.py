@@ -70,8 +70,6 @@ class MessageRepo:
         if len(messages) == 0:
             return
 
-        # TODO : Filter out messages that are already in db
-
         columns = [
             'id',
             'snippet',
@@ -157,9 +155,8 @@ class MessageRepo:
         label_messages: Dict[str, Set[str]],
         label_pks: Dict[str, int],
     ):
-        # TODO : Remove any label relationships that are already in the db
         variables: List[tuple] = []
-        for label_id in label_messages:  # type: str
+        for label_id in label_messages:
             label_pk = label_pks.get(label_id)
             if not label_pk:
                 continue

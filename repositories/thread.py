@@ -11,8 +11,8 @@ class ThreadRepo:
         self.db = Database()
 
     def upsert(self, thread: GmailThread, user: User):
-        threads_exists = self.exists(thread.thread_id)
-        if threads_exists:
+        thread_exists = self.exists(thread.thread_id)
+        if thread_exists:
             self.update_history_id(thread)
         else:
             self.create_many([thread], user)
@@ -40,8 +40,6 @@ class ThreadRepo:
     def create_many(self, threads: List[GmailThread], user: User):
         if len(threads) == 0:
             return
-
-        # TODO : Check thread ids and remove any that are already in the db
 
         columns = [
             'id',

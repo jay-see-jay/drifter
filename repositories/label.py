@@ -40,26 +40,6 @@ class LabelRepo:
                 return None
             print(f'Could not retrieve label from db: {e}')
 
-    def get_by_ids(self, label_ids: Set[str]) -> List[GmailLabel]:
-        if len(label_ids) == 0:
-            return []
-
-        query = 'SELECT * FROM messages WHERE id IN(%s) AND user_pk=%s'
-
-        try:
-            response = self.db.query(query, (list(label_ids), self.user.pk))
-            labels: List[GmailLabel] = []
-
-            for row in response:
-                labels.append(self.instantiate_label(row))
-
-            return labels
-        except mysql.connector.Error as e:
-            if e.msg == 'Not found':
-                return []
-            else:
-                print(f'Failed to get labels from db: {e}')
-
     def get_all(self) -> Dict[str, int]:
         query = 'SELECT pk, id FROM labels WHERE user_pk = %s'
         variables = (self.user.pk,)
@@ -120,11 +100,6 @@ class LabelRepo:
     def create_many(self, labels: List[GmailLabel]):
         if len(labels) == 0:
             return
-
-        label_ids = [label.label_id for label in labels]
-        existing_labels = self.get_by_ids(set(label_ids))
-        existing_label_ids = [existing_label.label_id for existing_label in existing_labels]
-        # TODO : Filter labels to remove any that have IDs that are in existing_labels
 
         columns = [
             'id',

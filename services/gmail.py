@@ -201,23 +201,23 @@ class Gmail:
             if msg_id not in existing_message_ids:
                 new_message_ids.add(msg_id)
 
-        messages = self.get_messages_by_ids(new_message_ids)
+        new_messages = self.get_messages_by_ids(new_message_ids)
 
         thread_ids: Set[str] = set()
-        for msg_id in messages:
-            msg = messages[msg_id]
+        for msg_id in new_messages:
+            msg = new_messages[msg_id]
             if msg_id in added_message_ids:
                 msg.added_history_id = min(added_message_ids[msg_id])
             thread_ids.add(msg.thread_id)
 
-        threads = self.get_threads_by_ids(list(thread_ids))
+        threads = self.get_threads_by_ids(thread_ids)
 
         thread_repo = ThreadRepo()
         for t_id in threads:
             t = threads[t_id]
             thread_repo.upsert(t, self.user)
 
-        messages_list = list(messages.values())
+        messages_list = list(new_messages.values())
 
         labels = self.get_labels(list(label_ids))
         label_repo = LabelRepo(self.user)
@@ -275,14 +275,14 @@ class Gmail:
     def get_threads(self, page_token=None, count=50) -> GmailThreadsListResponse:
         response = self.api.users().threads().list(userId='me', pageToken=page_token, maxResults=count).execute()
         threads = response.get('threads', [])
-        thread_ids = [thread.get('id') for thread in threads]
+        thread_ids = [t.get('id') for t in threads]
         next_page_token = response.get('nextPageToken')
         return {
             'thread_ids': thread_ids,
             'next_page_token': next_page_token
         }
 
-    def get_threads_by_ids(self, thread_ids: List[str]) -> Dict[str, GmailThread]:
+    def get_threads_by_ids(self, thread_ids: Set[str]) -> Dict[str, GmailThread]:
         threads: Dict[str, GmailThread] = dict()
 
         if len(thread_ids) == 0:
