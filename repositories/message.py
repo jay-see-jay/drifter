@@ -42,8 +42,10 @@ class MessageRepo:
 
         query = 'SELECT * FROM messages WHERE id IN(%s)'
 
+        id_list = ",".join(message_ids)
+
         try:
-            response = self.db.query(query, (list(message_ids),))
+            response = self.db.query(query, (id_list,))
             messages: List[GmailMessage] = []
 
             for row in response:
