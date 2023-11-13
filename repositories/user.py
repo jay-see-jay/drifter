@@ -198,7 +198,11 @@ class UserRepo:
             creds.expiry,
             user.email
         )
-        self.db.query(query, variables)
+        try:
+            self.db.query(query, variables)
+        except mysql.connector.Error as e:
+            if e.msg != 'Not found':
+                print(f'Failed to save credentials to db')
         self.db.close()
         return
 
@@ -213,7 +217,12 @@ class UserRepo:
                 email = %s
         """
         variables = (user.email,)
-        self.db.query(query, variables)
+        try:
+            self.db.query(query, variables)
+        except mysql.connector.Error as e:
+            if e.msg != 'Not found':
+                print(f'Failed to remove credentials from user: {e}')
+
         self.db.close()
 
     def delete(self, user_id: int):

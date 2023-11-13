@@ -92,7 +92,7 @@ class Gmail:
         flow = InstalledAppFlow.from_client_config(
             creds_dict, SCOPES)
 
-        creds = flow.run_local_server(approval_prompt='force')
+        creds = flow.run_local_server(port=3000, approval_prompt='force')
         print('Saving new credentials')
         self.user_repo.save_credentials(user=self.user, creds=creds)
         return creds
