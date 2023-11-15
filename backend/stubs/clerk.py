@@ -88,3 +88,9 @@ class OAuthAccessToken:
         self.label = label
         self.scopes = scopes
         self.token_secret = token_secret
+
+
+class ClerkError(Exception):
+    def __init__(self, msg: str):
+        super()
+        self.msg = msg

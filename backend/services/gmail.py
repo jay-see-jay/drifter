@@ -35,23 +35,19 @@ class Gmail:
         self.user = auth_user
         self.oauth = oauth
         self.user_repo = UserRepo()
-        token_dict = self._get_user_auth()
-        creds = Credentials.from_authorized_user_info(token_dict, SCOPES)
+        creds = Credentials(
+            token=oauth.token,
+            token_uri=os.getenv('GOOGLE_TOKEN_URI'),
+            client_id=os.getenv('GOOGLE_CLIENT_ID'),
+            client_secret=os.getenv('GOOGLE_CLIENT_SECRET'),
+            scopes=oauth.scopes,
+        )
 
         self.api = build('gmail', 'v1', credentials=creds)
         self.batch = None
         self.batch_request_count = 0
         # Limit set as per https://developers.google.com/gmail/api/guides/batch
         self._batch_request_limit = 50
-
-    def _get_user_auth(self) -> dict:
-        return {
-            'token': self.oauth.token,
-            'token_uri': os.getenv('GOOGLE_TOKEN_URI'),
-            'client_id': os.getenv('GOOGLE_CLIENT_ID'),
-            'client_secret': os.getenv('GOOGLE_CLIENT_SECRET'),
-            'scopes': SCOPES,
-        }
 
     def watch_mailbox(self):
         cloud_project = os.getenv('GOOGLE_PROJECT_ID')

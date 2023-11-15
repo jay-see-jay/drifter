@@ -5,6 +5,7 @@ from typing import Dict, Set
 from services import Gmail, Clerk
 from repositories import *
 from stubs.gmail import *
+from stubs.clerk import ClerkError
 from utilities.general import process_message_part
 
 
@@ -17,6 +18,8 @@ def handle_sync_gmail_mailbox(request: Request) -> Response:
         return make_response(e.msg, 404)
     except HTTPException as e:
         return make_response(e.description, 400)
+    except ClerkError as e:
+        return make_response(e.msg, 400)
 
     gmail = Gmail(user, oauth)
     page_token = None
@@ -67,7 +70,7 @@ def handle_sync_gmail_mailbox(request: Request) -> Response:
     saved_labels = label_repo.get_all()
 
     message_repo = MessageRepo(user)
-    message_repo.create_many(messages)
+    message_repo.create_many(messages, saved_labels)
     message_repo.store_labels(label_messages, saved_labels)
 
     message_parts_repo = MessagePartRepo()
