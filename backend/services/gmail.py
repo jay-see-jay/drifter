@@ -29,10 +29,10 @@ SCOPES = [
 
 class Gmail:
     def __init__(self,
-                 user: User,
+                 auth_user: User,
                  oauth: OAuthAccessToken,
                  ):
-        self.user = user
+        self.user = auth_user
         self.oauth = oauth
         self.user_repo = UserRepo()
         token_dict = self._get_user_auth()
@@ -346,19 +346,19 @@ class Gmail:
         return labels
 
     @staticmethod
-    def parse_message_headers(message_part: GmailMessagePart) -> ParsedMessageHeaders:
+    def parse_message_headers(part: GmailMessagePart) -> ParsedMessageHeaders:
         # TODO: Try to extract pure email address only
-        headers = message_part.headers
+        headers = part.headers
         email_to = ''
         email_from = ''
         subject = ''
-        for header in headers:
-            if header['name'] == 'To':
-                email_to = check_for_my_email(header['value'])
-            elif header['name'] == 'From':
-                email_from = check_for_my_email(header['value'])
-            elif header['name'] == 'Subject':
-                subject = header['value']
+        for hdr in headers:
+            if hdr['name'] == 'To':
+                email_to = check_for_my_email(hdr['value'])
+            elif hdr['name'] == 'From':
+                email_from = check_for_my_email(hdr['value'])
+            elif hdr['name'] == 'Subject':
+                subject = hdr['value']
 
         return ParsedMessageHeaders(
             email_from=email_from,
@@ -366,14 +366,14 @@ class Gmail:
             subject=subject
         )
 
-    def parse_message_part(self, message_part: GmailMessagePart, body: List[str]) -> None:
-        if self.is_container_mime_message_part(message_part):
-            child_message_parts = message_part.parts
+    def parse_message_part(self, part: GmailMessagePart, body: List[str]) -> None:
+        if self.is_container_mime_message_part(part):
+            child_message_parts = part.parts
             for child_part in child_message_parts:
                 self.parse_message_part(child_part, body)
         else:
-            message_body = message_part.body
-            mime_type = message_part.mime_type
+            message_body = part.body
+            mime_type = part.mime_type
             if self.body_has_data(message_body) and mime_type == 'text/plain':
                 decoded_data = self.decode_body(message_body)
                 body.append(decoded_data)
@@ -399,15 +399,15 @@ class Gmail:
 
     @staticmethod
     def create_draft(draft: str, recipient: str, thread_id: str):
-        message = EmailMessage()
+        msg = EmailMessage()
 
-        message.set_content(draft)
+        msg.set_content(draft)
 
-        message['To'] = recipient
-        message['From'] = get_my_email()
+        msg['To'] = recipient
+        msg['From'] = get_my_email()
 
         # encoded messageg
-        encoded_message = base64.urlsafe_b64encode(message.as_bytes()).decode()
+        encoded_message = base64.urlsafe_b64encode(msg.as_bytes()).decode()
 
         create_message = {
             'message': {
