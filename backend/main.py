@@ -12,8 +12,8 @@ def mailbox_change(cloud_event: CloudEvent) -> None:
 
 
 @functions_framework.http
-def sync_gmail_mailbox(request: Request) -> Response:
-    return functions.handle_sync_gmail_mailbox(request)
+def sync_gmail(request: Request) -> Response:
+    return functions.handle_sync_gmail(request)
 
 
 @functions_framework.cloud_event

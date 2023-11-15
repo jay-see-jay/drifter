@@ -9,7 +9,7 @@ from stubs.clerk import ClerkError
 from utilities.general import process_message_part
 
 
-def handle_sync_gmail_mailbox(request: Request) -> Response:
+def handle_sync_gmail(request: Request) -> Response:
     user_repo = UserRepo()
     try:
         user = user_repo.get_user_from_request(request)
