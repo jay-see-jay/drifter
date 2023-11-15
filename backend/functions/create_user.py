@@ -1,6 +1,7 @@
 import os
 from typing import Optional
-from datetime import datetime
+
+import mysql.connector
 from flask import Request, Response, make_response
 from svix.webhooks import Webhook, WebhookVerificationError
 from dotenv import load_dotenv
@@ -56,8 +57,15 @@ def handle_create_user(request: Request) -> Response:
     except Exception as e:
         return make_response(e, 400)
 
-    # TODO : Store Clerk User ID in db and remove columns related to access token
-    # TODO : Create new instance of User
-    # TODO : Store new User in db
+    new_user = User(
+        email=primary_email_address,
+        clerk_user_id=clerk_user_id
+    )
+
+    user_repo = UserRepo()
+    try:
+        user_repo.create_user(new_user)
+    except mysql.connector.Error as e:
+        make_response('Failed to store new user', 400)
 
     return make_response()

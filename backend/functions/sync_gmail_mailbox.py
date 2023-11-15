@@ -2,24 +2,23 @@ import mysql.connector
 from flask import Request, Response, make_response
 from werkzeug.exceptions import HTTPException
 from typing import Dict, Set
-from services.gmail import Gmail
+from services import Gmail, Clerk
 from repositories import *
-from models.user import User
 from stubs.gmail import *
-from utilities.general import process_message_part, create_label_messages_dict
+from utilities.general import process_message_part
 
 
 def handle_sync_gmail_mailbox(request: Request) -> Response:
     user_repo = UserRepo()
-    user: User
     try:
-        user = user_repo.get_from_request(request)
+        user = user_repo.get_user_from_request(request)
+        oauth = Clerk().get_oauth_token(user.clerk_user_id)
     except mysql.connector.Error as e:
         return make_response(e.msg, 404)
     except HTTPException as e:
         return make_response(e.description, 400)
 
-    gmail = Gmail(user)
+    gmail = Gmail(user, oauth)
     page_token = None
     threads: Dict[str, GmailThread] = dict()
 

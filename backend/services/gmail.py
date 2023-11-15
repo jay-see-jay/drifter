@@ -1,14 +1,12 @@
 import os
 import base64
 import json
-from typing import Dict, Set, Tuple
+from typing import Dict, Set
 
 from dotenv import load_dotenv
 from email.message import EmailMessage
 import google.auth.transport.requests
-from google.auth.exceptions import RefreshError
 from google.oauth2.credentials import Credentials
-from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 from cloudevents.http import CloudEvent
@@ -17,6 +15,7 @@ from utilities.general import *
 from utilities.user_utils import *
 from models.user import User
 from repositories import *
+from stubs.clerk import OAuthAccessToken
 from stubs.gmail import *
 from stubs.internal import *
 
@@ -30,18 +29,14 @@ SCOPES = [
 
 class Gmail:
     def __init__(self,
-                 user: User
+                 user: User,
+                 oauth: OAuthAccessToken,
                  ):
         self.user = user
+        self.oauth = oauth
         self.user_repo = UserRepo()
-        token_dict = self._get_user_auth(user)
+        token_dict = self._get_user_auth()
         creds = Credentials.from_authorized_user_info(token_dict, SCOPES)
-
-        # If there are no (valid) credentials available, let the user log in.
-        if not creds or not creds.valid:
-            success = self._refresh_credentials(creds)
-            if not success:
-                creds = self._request_authorization()
 
         self.api = build('gmail', 'v1', credentials=creds)
         self.batch = None
@@ -49,53 +44,14 @@ class Gmail:
         # Limit set as per https://developers.google.com/gmail/api/guides/batch
         self._batch_request_limit = 50
 
-    @staticmethod
-    def _get_user_auth(user: User) -> dict:
+    def _get_user_auth(self) -> dict:
         return {
-            'token': user.access_token,
-            'refresh_token': user.refresh_token,
+            'token': self.oauth.token,
             'token_uri': os.getenv('GOOGLE_TOKEN_URI'),
             'client_id': os.getenv('GOOGLE_CLIENT_ID'),
             'client_secret': os.getenv('GOOGLE_CLIENT_SECRET'),
             'scopes': SCOPES,
-            'expiry': os.getenv('TEMP_TOKEN_EXPIRY')
         }
-
-    @staticmethod
-    def _get_credentials() -> dict:
-        return {
-            'web': {
-                'client_id': os.getenv('GOOGLE_CLIENT_ID'),
-                'project_id': os.getenv('GOOGLE_PROJECT_ID'),
-                'auth_uri': os.getenv('GOOGLE_AUTH_URI'),
-                'token_uri': os.getenv('GOOGLE_TOKEN_URI'),
-                'auth_provider_x509_cert_url': os.getenv('GOOGLE_AUTH_PROVIDER'),
-                'client_secret': os.getenv('GOOGLE_CLIENT_SECRET')
-            }
-        }
-
-    def _refresh_credentials(self, creds: Credentials, ) -> bool:
-        if creds and creds.expired and creds.refresh_token:
-            try:
-                creds.refresh(google.auth.transport.requests.Request())
-                return True
-            except RefreshError as e:
-                error_description = e.args[1].get('error_description')
-                print(f'Could not refresh credentials: {error_description}')
-                print('Deleting user credentials')
-                self.user_repo.remove_credentials(user=self.user)
-
-        return False
-
-    def _request_authorization(self) -> Credentials:
-        creds_dict = self._get_credentials()
-        flow = InstalledAppFlow.from_client_config(
-            creds_dict, SCOPES)
-
-        creds = flow.run_local_server(port=3000, approval_prompt='force')
-        print('Saving new credentials')
-        self.user_repo.save_credentials(user=self.user, creds=creds)
-        return creds
 
     def watch_mailbox(self):
         cloud_project = os.getenv('GOOGLE_PROJECT_ID')

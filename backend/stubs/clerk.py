@@ -71,11 +71,20 @@ class UserCreatedEvent(TypedDict):
     type: Literal['user.created']
 
 
-class OAuthAccessToken(TypedDict):
-    object: str
-    token: str
-    provider: str
-    public_metadata: dict
-    label: Optional[str]
-    scopes: List[str]
-    token_secret: Optional[str]
+class OAuthAccessToken:
+    def __init__(self,
+                 object: str,
+                 token: str,
+                 provider: str,
+                 public_metadata: str,
+                 scopes: List[str],
+                 label: Optional[str] = None,
+                 token_secret: Optional[str] = None,
+                 ):
+        self.object = object
+        self.token = token
+        self.provider = provider
+        self.public_metadata = public_metadata
+        self.label = label
+        self.scopes = scopes
+        self.token_secret = token_secret

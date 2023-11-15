@@ -3,7 +3,7 @@ from typing import List
 
 from cloudevents.http import CloudEvent
 
-from services.gmail import Gmail
+from services import Gmail, Clerk
 from services.openai import OpenAI
 from repositories import UserRepo
 
@@ -15,11 +15,12 @@ def handle_mailbox_change(cloud_event: CloudEvent) -> None:
 
     email = cloud_event_data['emailAddress']
     user_repo = UserRepo()
-    user = user_repo.get_by_email(email)
+    user = user_repo.get_user_by_email(email)
+    oauth = Clerk().get_oauth_token(user.clerk_user_id)
 
     history_id = user_repo.get_latest_history_id(user)
     print('history_id', history_id)
-    gmail = Gmail(user)
+    gmail = Gmail(user, oauth)
     history_list = gmail.get_history(history_id)
 
     with open('output.json', 'w') as json_file:
