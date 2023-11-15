@@ -1,4 +1,4 @@
-from typing import TypedDict, Literal, List
+from typing import TypedDict, Literal, List, Optional
 
 
 class Verification(TypedDict):
@@ -69,3 +69,13 @@ class UserCreatedEvent(TypedDict):
     data: UserCreatedEventData
     object: Literal['event']
     type: Literal['user.created']
+
+
+class OAuthAccessToken(TypedDict):
+    object: str
+    token: str
+    provider: str
+    public_metadata: dict
+    label: Optional[str]
+    scopes: List[str]
+    token_secret: Optional[str]

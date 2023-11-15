@@ -12,11 +12,7 @@ from stubs.clerk import *
 load_dotenv()
 
 
-def extract_primary_email_address(event: UserCreatedEvent) -> str:
-    event_data = event.get('data')
-    if not event_data:
-        raise Exception('User created event does not contain any data')
-
+def extract_primary_email_address(event_data: UserCreatedEventData) -> str:
     primary_email_address_id = event_data.get('primary_email_address_id')
     email_addresses = event_data.get('email_addresses', [])
     primary_email_address: Optional[str] = None
@@ -50,23 +46,18 @@ def handle_create_user(request: Request) -> Response:
     except WebhookVerificationError as e:
         return make_response(f'Webhook verfication failed: {e}', 400)
 
+    msg_data = msg.get('data')
+    if not msg_data:
+        return make_response('User created event does not contain any data', 400)
+
     try:
-        primary_email_address = extract_primary_email_address(msg)
+        primary_email_address = extract_primary_email_address(msg_data)
+        clerk_user_id = msg_data['id']
     except Exception as e:
         return make_response(e, 400)
 
-    access_token = ''
-    refresh_token = ''
-    token_expires_at = datetime.now()
-
-    new_user = User(
-        email=primary_email_address,
-        access_token=access_token,
-        refresh_token=refresh_token,
-        token_expires_at=token_expires_at
-    )
-
-    user_repo = UserRepo()
-    user_repo.create(new_user)
+    # TODO : Store Clerk User ID in db and remove columns related to access token
+    # TODO : Create new instance of User
+    # TODO : Store new User in db
 
     return make_response()
