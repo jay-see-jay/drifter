@@ -1,13 +1,14 @@
+from typing import Optional
 from datetime import datetime
 
 
 class User:
     def __init__(self,
-                 pk: int,
                  email: str,
                  access_token: str,
                  refresh_token: str,
                  token_expires_at: datetime,
+                 pk: Optional[int] = None,
                  is_active: bool = False,
                  ):
         self.pk = pk
