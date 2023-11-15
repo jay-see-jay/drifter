@@ -4,17 +4,12 @@ from typing import List
 
 from dotenv import load_dotenv
 
-from stubs.internal import Env
-from stubs.gmail import GmailLabel
-
 load_dotenv()
 
 
 class Database:
-    def __init__(self,
-                 env: Env = 'development'
-                 ):
-        is_production = env == 'production'
+    def __init__(self):
+        is_production = os.getenv('ENV') == 'production'
 
         username = os.getenv('DATABASE_USERNAME_PROD') if is_production else os.getenv('DB_USER_DEV_ADMIN')
         password = os.getenv('DATABASE_PASSWORD_PROD') if is_production else os.getenv('DB_PASS_DEV_ADMIN')

@@ -1,8 +1,6 @@
 from typing import TypedDict, Literal, Optional
 from datetime import datetime
 
-Env = Literal['production', 'development']
-
 
 class ParsedMessageHeaders(TypedDict):
     email_from: str

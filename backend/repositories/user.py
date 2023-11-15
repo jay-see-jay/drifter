@@ -15,7 +15,6 @@ load_dotenv()
 
 class UserRepo:
     def __init__(self):
-        key = bytes(os.getenv('SECRET_KEY'), 'utf-8')
         self.db = Database()
         self.create_columns = [
             'email',
