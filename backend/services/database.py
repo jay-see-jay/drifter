@@ -1,6 +1,6 @@
 import os
 import mysql.connector
-from typing import List
+from typing import List, Optional
 
 from dotenv import load_dotenv
 
@@ -8,8 +8,14 @@ load_dotenv()
 
 
 class Database:
-    def __init__(self):
-        is_production = os.getenv('ENV') == 'production'
+    def __init__(
+        self,
+        env: Optional[str] = None
+    ):
+        if env:
+            is_production = env == 'production'
+        else:
+            is_production = os.getenv('ENV') == 'production'
 
         username = os.getenv('DATABASE_USERNAME_PROD') if is_production else os.getenv('DB_USER_DEV_ADMIN')
         password = os.getenv('DATABASE_PASSWORD_PROD') if is_production else os.getenv('DB_PASS_DEV_ADMIN')
