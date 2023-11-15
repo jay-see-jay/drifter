@@ -1,5 +1,6 @@
 import os
 from typing import Optional
+import requests
 
 import mysql.connector
 from flask import Request, Response, make_response
@@ -64,7 +65,15 @@ def handle_create_user(request: Request) -> Response:
 
     user_repo = UserRepo()
     try:
-        user_repo.create_user(new_user)
+        user_pk = user_repo.create_user(new_user)
+        print('New user created.')
+        if not user_pk:
+            user = user_repo.get_user_by_email(new_user.email)
+            user_pk = user.pk
+        sync_gmail_function_path = os.getenv('SYNC_GMAIL_FUNCTION')
+        sync_gmail_url = f'{sync_gmail_function_path}/users/{user_pk}'
+        requests.post(sync_gmail_url)
+        print('Triggered Gmail sync')
     except mysql.connector.Error as e:
         make_response('Failed to store new user', 400)
 

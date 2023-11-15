@@ -1,10 +1,8 @@
-import os
-
 import mysql.connector
 from dotenv import load_dotenv
 from flask import Request
 from werkzeug.exceptions import HTTPException
-from typing import List, Tuple
+from typing import List, Tuple, Optional
 
 from services.database import Database
 from utilities.user_utils import get_user_id_from_path
@@ -26,7 +24,7 @@ class UserRepo:
             'created_at',
         ]
 
-    def create_user(self, new_user: User):
+    def create_user(self, new_user: User) -> Optional[int]:
         query = f'INSERT INTO users ({", ".join(self.create_columns)}) VALUES (%s, %s, %s)'
 
         variables: Tuple[str, str, bool] = (
@@ -36,6 +34,8 @@ class UserRepo:
         )
 
         self.db.insert_one(query, variables)
+
+        return self.db.cursor.lastrowid
 
         self.db.close()
 
