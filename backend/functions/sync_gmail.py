@@ -62,7 +62,7 @@ def handle_sync_gmail(request: Request) -> Response:
     label_ids = [label_id for label_id in label_messages]
     labels = gmail.get_labels(label_ids=label_ids)
 
-    thread_repo = ThreadRepo()
+    thread_repo = ThreadRepo(user)
     thread_repo.create_many(list(threads.values()), user)
 
     label_repo = LabelRepo(user)

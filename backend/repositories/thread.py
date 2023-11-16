@@ -7,15 +7,35 @@ from stubs.gmail import GmailThread
 
 
 class ThreadRepo:
-    def __init__(self):
+    def __init__(
+        self,
+        user: User
+    ):
         self.db = Database()
+        self.user = user
 
-    def upsert(self, thread: GmailThread, user: User):
+    def get_inbox(self) -> List[GmailThread]:
+        query = """
+            SELECT threads.id FROM threads
+            JOIN messages ON messages.thread_id = threads.id
+            JOIN messages_labels ON messages_labels.message_id = messages.id
+            JOIN labels ON messages_labels.label_pk = labels.pk
+            WHERE labels.id = 'INBOX'
+            GROUP BY threads.id;
+        """
+
+        try:
+            response = self.db.query(query, ())
+            print(response)
+        except mysql.connector.Error as e:
+            print(f'Failed to retrieve threads in the inbox: {e}')
+
+    def upsert(self, thread: GmailThread):
         thread_exists = self.exists(thread.thread_id)
         if thread_exists:
             self.update_history_id(thread)
         else:
-            self.create_many([thread], user)
+            self.create_many([thread])
 
     def update_history_id(self, thread: GmailThread):
         query = 'UPDATE threads SET history_id="%s" WHERE thread_id="%s"'
@@ -37,7 +57,7 @@ class ThreadRepo:
                 return False
             print(f'Could not verify that thread was in db: {e}')
 
-    def create_many(self, threads: List[GmailThread], user: User):
+    def create_many(self, threads: List[GmailThread]):
         if len(threads) == 0:
             return
 
@@ -56,7 +76,7 @@ class ThreadRepo:
                 thread.thread_id,
                 thread.snippet,
                 thread.history_id,
-                user.pk,
+                self.user.pk,
             ))
 
         try:

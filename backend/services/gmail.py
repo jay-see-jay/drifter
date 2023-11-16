@@ -165,7 +165,7 @@ class Gmail:
 
         threads = self.get_threads_by_ids(thread_ids)
 
-        thread_repo = ThreadRepo()
+        thread_repo = ThreadRepo(self.user)
         for t_id in threads:
             t = threads[t_id]
             thread_repo.upsert(t, self.user)
