@@ -1,10 +1,4 @@
-type MoreHorizProps = {
-	classNames?: string[]
-}
-
-export default function MoreHoriz({
-	classNames = []
-}: MoreHorizProps) {
+export default function MoreHoriz() {
 	return (
 		<svg
 			xmlns="http://www.w3.org/2000/svg"

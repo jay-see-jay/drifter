@@ -1,8 +1,7 @@
 import MoreHoriz from '@/components/icons/MoreHoriz'
 import Done from '@/components/icons/Done'
 import ProgressActivity from '@/components/icons/ProgressActivity'
-import { StepsDispatch, StepStatus} from '@/app/onboarding/page'
-import { Dispatch } from 'react';
+import { StepStatus} from '@/app/onboarding/page'
 
 type OnboardingStepProps = {
 	step: string
