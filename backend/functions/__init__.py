@@ -1,5 +1,5 @@
 from functions.sync_gmail import handle_sync_gmail
-from functions.watch_gmail_mailbox import handle_watch_gmail_mailbox
+from functions.watch_gmail import handle_watch_gmail
 from functions.mailbox_change import handle_mailbox_change
 from functions.refresh_mailbox_sub import handle_refresh_mailbox_sub
 from functions.create_user import handle_create_user

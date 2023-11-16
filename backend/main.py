@@ -22,8 +22,8 @@ def refresh_mailbox_sub(cloud_event: CloudEvent) -> None:
 
 
 @functions_framework.http
-def watch_gmail_mailbox(request: Request) -> Response:
-    return functions.handle_watch_gmail_mailbox(request)
+def watch_gmail(request: Request) -> Response:
+    return functions.handle_watch_gmail(request)
 
 
 @functions_framework.http

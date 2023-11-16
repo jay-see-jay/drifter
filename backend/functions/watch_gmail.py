@@ -7,7 +7,7 @@ from repositories import UserRepo
 from services import Gmail, Clerk
 
 
-def handle_watch_gmail_mailbox(request: flask.Request) -> flask.Response:
+def handle_watch_gmail(request: flask.Request) -> flask.Response:
     user_repo = UserRepo()
     try:
         user = user_repo.get_user_from_request(request)

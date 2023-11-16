@@ -11,7 +11,7 @@ case $function_name in
   mailbox_change|refresh_mailbox_sub)
     trigger="PUBSUB"
     ;;
-  sync_gmail|watch_gmail_mailbox|create_user)
+  sync_gmail|watch_gmail|create_user)
     trigger="HTTP"
     ;;
   *)
