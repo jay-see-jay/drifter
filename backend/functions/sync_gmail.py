@@ -15,11 +15,11 @@ def handle_sync_gmail(request: Request) -> Response:
         user = user_repo.get_user_from_request(request)
         oauth = Clerk().get_oauth_token(user.clerk_user_id)
     except mysql.connector.Error as e:
-        return make_response(e.msg, 404)
+        return make_response(f'Failed to connect to db: {e}', 404)
     except HTTPException as e:
-        return make_response(e.description, 400)
+        return make_response(f'Failed to get user: {e}', 400)
     except ClerkError as e:
-        return make_response(e.msg, 400)
+        return make_response(f'Failed to connect to Clerk: {e}', 400)
 
     gmail = Gmail(user, oauth)
     page_token = None

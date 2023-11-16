@@ -1,12 +1,13 @@
 import os
 from typing import Optional
-import requests
+from urllib.error import HTTPError
 
 import mysql.connector
 from flask import Request, Response, make_response
 from svix.webhooks import Webhook, WebhookVerificationError
 from dotenv import load_dotenv
 
+from services import CloudFunctions
 from repositories import UserRepo
 from models import User
 from stubs.clerk import *
@@ -70,11 +71,12 @@ def handle_create_user(request: Request) -> Response:
         if not user_pk:
             user = user_repo.get_user_by_email(new_user.email)
             user_pk = user.pk
-        sync_gmail_function_path = os.getenv('SYNC_GMAIL_FUNCTION')
-        sync_gmail_url = f'{sync_gmail_function_path}/users/{user_pk}'
-        requests.post(sync_gmail_url)
+        CloudFunctions('sync_gmail').sync_gmail(user_pk)
         print('Triggered Gmail sync')
+
     except mysql.connector.Error as e:
-        make_response('Failed to store new user', 400)
+        make_response(f'Failed to store new user {e}', 400)
+    except HTTPError as e:
+        make_response(f'Could not trigger gmail sync: {e}', 400)
 
     return make_response()
