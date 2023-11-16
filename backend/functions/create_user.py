@@ -73,7 +73,6 @@ def handle_create_user(request: Request) -> Response:
             user_pk = user.pk
         CloudFunctions('sync_gmail').sync_gmail(user_pk)
         print('Triggered Gmail sync')
-
     except mysql.connector.Error as e:
         make_response(f'Failed to store new user {e}', 400)
     except HTTPError as e:
