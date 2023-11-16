@@ -1,12 +1,24 @@
 import MoreHoriz from '@/components/icons/MoreHoriz'
 import Done from '@/components/icons/Done'
-import ProgressActivity from '@/components/icons/ProgressActivity';
+import ProgressActivity from '@/components/icons/ProgressActivity'
+import { StepsDispatch, StepStatus} from '@/app/onboarding/page'
+import { Dispatch } from 'react';
 
 type OnboardingStepProps = {
 	step: string
+	status?: StepStatus
 }
 
-export default function OnboardingStep({ step }: OnboardingStepProps) {
+function getIcon(status: StepStatus) {
+	if (status === 'complete') return <Done />
+	if (status === 'in_progress') return <ProgressActivity />
+	return <MoreHoriz />
+}
+
+export default function OnboardingStep({
+	step,
+	status = 'pending',
+}: OnboardingStepProps) {
 	const divClasses = [
 		'grid',
 		'gap-2',
@@ -19,9 +31,7 @@ export default function OnboardingStep({ step }: OnboardingStepProps) {
 		<div
 			className={divClasses.join(' ')}
 		>
-			<MoreHoriz />
-			<ProgressActivity />
-			<Done />
+			{getIcon(status)}
 			<li
 				className={['text-xl'].join(' ')}
 			>
