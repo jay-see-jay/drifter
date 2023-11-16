@@ -94,7 +94,8 @@ class Gmail:
             return history_list
 
         except HttpError as e:
-            raise e
+            print(e)
+            return []
 
     def process_history(self, start_history_id: str, history_list: List[History]):
         if len(history_list) == 0:

@@ -122,7 +122,7 @@ class UserRepo:
 
         tables = ['threads', 'messages']
         for table in tables:
-            query = f'SELECT history_id FROM {table} WHERE user_pk=%s ORDER BY history_id DESC LIMIT 1;'
+            query = f'SELECT history_id FROM {table} WHERE user_pk=%s ORDER BY ABS(history_id) DESC LIMIT 1;'
             variables = (user.pk,)
             response = self.db.query(query, variables)
             history_id = response[0].get('history_id')
