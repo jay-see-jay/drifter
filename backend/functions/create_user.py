@@ -80,4 +80,5 @@ def handle_create_user(request: Request) -> Response:
     except HTTPError as e:
         make_response(f'Could not trigger gmail sync: {e}', 400)
 
+    print('Complete.')
     return make_response()
