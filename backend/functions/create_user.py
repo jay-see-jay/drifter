@@ -7,7 +7,7 @@ from flask import Request, Response, make_response
 from svix.webhooks import Webhook, WebhookVerificationError
 from dotenv import load_dotenv
 
-from services import CloudFunctions
+from services.cloud_functions import call_cloud_function
 from repositories import UserRepo
 from models import User
 from stubs.clerk import *
@@ -71,8 +71,10 @@ def handle_create_user(request: Request) -> Response:
         if not user_pk:
             user = user_repo.get_user_by_email(new_user.email)
             user_pk = user.pk
-        CloudFunctions('sync_gmail').sync_gmail(user_pk)
+        call_cloud_function('sync_gmail', user_pk)
         print('Triggered Gmail sync')
+        call_cloud_function('watch_gmail', user_pk)
+        print('Set up watch on Gmail mailbox')
     except mysql.connector.Error as e:
         make_response(f'Failed to store new user {e}', 400)
     except HTTPError as e:
