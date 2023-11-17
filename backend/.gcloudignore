@@ -9,6 +9,8 @@ output.json
 .env*
 .editorconfig
 .DS_Store
+.benchmarks/
+.pytest_cache/
 
 database/
 venv/
