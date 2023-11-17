@@ -24,7 +24,11 @@ class OpenAI:
 
     def extract_message(self, message: str) -> str:
         prompt = 'Please extract only the new message from the email below, ' \
-                 'removing any quotes from earlier in the thread:'
+                 'removing any quotes from earlier messages in the thread.' \
+                 'Treat any URLs as plain text, you do not need to access the URL.' \
+                 'Do not make any edits to the message, only remove text that is a quote' \
+                 'from earlier in the thread. Do not add anything to indicate what you' \
+                 'have done, simply present the cleaned message on it\'s own.'
         message: ChatCompletionMessage = {
             'role': 'user',
             'content': f"""

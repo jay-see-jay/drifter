@@ -9,7 +9,6 @@ class ParsedMessageHeaders(TypedDict):
 
 
 class ParsedMessage(TypedDict):
-    index: int
     headers: ParsedMessageHeaders
     body: str
 

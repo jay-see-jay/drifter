@@ -168,7 +168,7 @@ class Gmail:
         thread_repo = ThreadRepo(self.user)
         for t_id in threads:
             t = threads[t_id]
-            thread_repo.upsert(t, self.user)
+            thread_repo.upsert(t)
 
         messages_list = list(new_messages.values())
 
@@ -394,14 +394,13 @@ class Gmail:
     def decode_body(self, body: GmailMessagePartBody) -> str:
         return self.decode_bytes(body['data'])
 
-    @staticmethod
-    def create_draft(draft: str, recipient: str, thread_id: str):
+    def create_draft(self, draft: str, recipient: str, thread_id: str):
         msg = EmailMessage()
 
         msg.set_content(draft)
 
         msg['To'] = recipient
-        msg['From'] = get_my_email()
+        msg['From'] = self.user.email
 
         # encoded messageg
         encoded_message = base64.urlsafe_b64encode(msg.as_bytes()).decode()
@@ -414,9 +413,8 @@ class Gmail:
         }
 
         try:
-            # draft = self.api().users().drafts().create(userId="me", body=create_message).execute()
-            # print(f'Draft id: {draft["id"]}\nDraft message: {draft["message"]}')\
-            print('Adding draft to Gmail disabled for now.')
+            draft = self.api.users().drafts().create(userId="me", body=create_message).execute()
+            print(f'Draft id: {draft["id"]}\nDraft message: {draft["message"]}')
 
         except HttpError as e:
             print(f'Failed to create draft in Gmail: {e}')

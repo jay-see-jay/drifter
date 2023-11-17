@@ -1,7 +1,10 @@
+from typing import List
+
 from cloudevents.http import CloudEvent
 
-from services import Gmail, Clerk
-from repositories import UserRepo
+from services import Gmail, Clerk, OpenAI
+from stubs import ParsedMessage, ParsedMessageHeaders
+from repositories import UserRepo, ThreadRepo
 
 
 def handle_mailbox_change(cloud_event: CloudEvent) -> None:
@@ -19,33 +22,58 @@ def handle_mailbox_change(cloud_event: CloudEvent) -> None:
     if len(history_list) > 0:
         gmail.process_history(history_id, history_list)
 
-    return
+    thread_repo = ThreadRepo(user)
 
-    # openai = OpenAI()
-    #
-    # for thread_id in changed_thread_ids:
-    #     thread = gmail.get_thread(thread_id)
-    #
-    #     count = 0
-    #     messages: List[ParsedMessage] = []
-    #     for message in thread.messages:
-    #         message_part = message['payload']
-    #
-    #         message_headers = gmail.parse_message_headers(message_part)
-    #
-    #         message_body_list: List[str] = []
-    #         gmail.parse_message_part(message_part, message_body_list)
-    #         message_body = ''.join(message_body_list)
-    #         message_body = openai.extract_message(message_body)
-    #
-    #         messages.append(ParsedMessage(
-    #             index=count,
-    #             headers=message_headers,
-    #             body=message_body
-    #         ))
-    #
-    #         count += 1
-    #
-    #     draft_reply = openai.get_draft_reply(messages)
-    #     recipient = messages[-1]['headers']['email_from']
-    #     gmail.create_draft(draft_reply, recipient, thread.id)
+    openai = OpenAI()
+
+    inbox_thread_ids = thread_repo.get_inbox()
+    for thread_id in inbox_thread_ids:
+        thread_messages = thread_repo.get_thread_messages(thread_id)
+        if len(thread_messages) == 0:
+            continue
+
+        last_message_from = thread_messages[-1]['message_from']
+        message_subject = thread_messages[0]['message_subject']
+        if user.email in last_message_from:
+            print('Skipping as last email from me\n')
+            continue
+
+        messages: List[ParsedMessage] = []
+        for message in thread_messages:
+            message_from = message['message_from']  # type: str
+            message_to = message['message_to']
+
+            decoded_body = Gmail.decode_bytes(message['body_data'])
+            clean_message = openai.extract_message(decoded_body)
+            message_headers: ParsedMessageHeaders = {
+                'email_from': message_from,
+                'email_to': message_to,
+                'subject': message_subject,
+            }
+
+            messages.append(ParsedMessage(
+                headers=message_headers,
+                body=clean_message
+            ))
+
+        draft_reply = openai.get_draft_reply(messages)
+        recipient = messages[-1]['headers']['email_from']
+        gmail.create_draft(draft_reply, recipient, thread_id)
+
+
+if __name__ == "__main__":
+    test_attributes = {
+        'specversion': '1.0',
+        'type': 'google.cloud.pubsub.topic.v1.messagePublished',
+        'source': '//pubsub.googleapis.com/projects/',
+        'datacontenttype': 'application/json',
+        'time': '2023-10-13T12:00:14.631Z'
+    }
+    test_data = {
+        'message': {
+            'data': 'eyJlbWFpbEFkZHJlc3MiOiIxMDNqY2pAZ21haWwuY29tIiwiaGlzdG9yeUlkIjoxMjU3NzZ9',
+        },
+    }
+
+    test_cloud_event = CloudEvent.create(test_attributes, test_data)
+    handle_mailbox_change(test_cloud_event)
