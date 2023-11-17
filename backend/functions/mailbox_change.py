@@ -35,12 +35,11 @@ def handle_mailbox_change(cloud_event: CloudEvent) -> None:
         last_message_from = thread_messages[-1]['message_from']
         message_subject = thread_messages[0]['message_subject']
         if user.email in last_message_from:
-            print('Skipping as last email from me\n')
             continue
 
         messages: List[ParsedMessage] = []
         for message in thread_messages:
-            message_from = message['message_from']  # type: str
+            message_from = message['message_from']
             message_to = message['message_to']
 
             decoded_body = Gmail.decode_bytes(message['body_data'])
