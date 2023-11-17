@@ -1,5 +1,6 @@
 import os
 import openai
+from openai import OpenAIError
 
 from dotenv import load_dotenv
 
@@ -14,13 +15,17 @@ class OpenAI:
         openai.api_key = os.getenv('OPENAI_API_KEY')
         self.api = openai
 
-    def chat(self, messages: List[ChatCompletionMessage]) -> str:
-        response = self.api.ChatCompletion.create(
-            model=Model.GPT3.value,
-            messages=messages,
-        )  # type: ChatCompletionResponse
+    def chat(self, messages: List[ChatCompletionMessage]) -> Optional[str]:
+        try:
+            response = self.api.ChatCompletion.create(
+                model=Model.GPT3.value,
+                messages=messages,
+            )  # type: ChatCompletionResponse
 
-        return response['choices'][0]['message']['content']
+            return response['choices'][0]['message']['content']
+        except OpenAIError as e:
+            print(f'Error getting completion: {e}')
+            return None
 
     def extract_message(self, message: str) -> str:
         prompt = 'Please extract only the new message from the email below, ' \

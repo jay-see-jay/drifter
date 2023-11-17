@@ -44,6 +44,8 @@ def handle_mailbox_change(cloud_event: CloudEvent) -> None:
 
             decoded_body = Gmail.decode_bytes(message['body_data'])
             clean_message = openai.extract_message(decoded_body)
+            if not clean_message:
+                break
             message_headers: ParsedMessageHeaders = {
                 'email_from': message_from,
                 'email_to': message_to,
@@ -56,7 +58,10 @@ def handle_mailbox_change(cloud_event: CloudEvent) -> None:
             ))
 
         draft_reply = openai.get_draft_reply(messages)
+        if not draft_reply:
+            break
         recipient = messages[-1]['headers']['email_from']
+        print('Adding draft reply.')
         gmail.create_draft(draft_reply, recipient, thread_id)
 
 
