@@ -36,34 +36,25 @@ class MessageRepo:
             else:
                 print(f'Failed to get message from db: {e}')
 
-    def get_by_ids(self, message_ids: Set[str]) -> List[GmailMessage]:
+    def get_by_ids(self, message_ids: Set[str]) -> List[str]:
         if len(message_ids) == 0:
+            print('No message_ids')
             return []
 
-        query = 'SELECT * FROM messages WHERE id IN(%s)'
-
-        id_list = ",".join(message_ids)
+        format_strings = ','.join(['%s'] * len(message_ids))
+        query = 'SELECT id FROM messages WHERE id IN (%s)' % format_strings
 
         try:
-            response = self.db.query(query, (id_list,))
-            messages: List[GmailMessage] = []
+            response = self.db.query(query, tuple(message_ids))
+            message_ids: List[str] = []
 
             for row in response:
-                messages.append(GmailMessage(
-                    message_id=row.get('id'),
-                    thread_id=row.get('thread_id'),
-                    label_ids=[],
-                    snippet=row.get('snippet'),
-                    history_id=row.get('history_id'),
-                    internal_date=row.get('internal_date'),
-                    size_estimate=row.get('size_estimate'),
-                    added_history_id=row.get('added_history_id'),
-                    deleted_history_id=row.get('deleted_history_id'),
-                ))
+                message_ids.append(row['id'])
 
-            return messages
+            return message_ids
         except mysql.connector.Error as e:
             if e.msg == 'Not found':
+                print('Not found')
                 return []
             else:
                 print(f'Failed to get messages from db: {e}')

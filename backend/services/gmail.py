@@ -151,8 +151,7 @@ class Gmail:
 
         message_repo = MessageRepo(self.user)
 
-        existing_messages = message_repo.get_by_ids(set(all_message_ids.keys()))
-        existing_message_ids = [msg.message_id for msg in existing_messages]
+        existing_message_ids = message_repo.get_by_ids(set(all_message_ids.keys()))
 
         new_message_ids: Set[str] = set()
         for msg_id in all_message_ids:
