@@ -4,7 +4,8 @@ import ProgressActivity from '@/components/icons/ProgressActivity'
 import { StepStatus } from '@/app/onboarding/OnboardingSteps'
 
 type OnboardingStepProps = {
-	step: string
+	step: { action: string, dataRequired: string }
+	hasData: boolean
 	status?: StepStatus
 }
 
@@ -34,7 +35,7 @@ export default function OnboardingStep({
 			<li
 				className={['text-xl'].join(' ')}
 			>
-				{step}
+				{step.action}
 			</li>
 		</div>
 		)

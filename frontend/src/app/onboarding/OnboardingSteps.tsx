@@ -2,10 +2,19 @@
 import OnboardingStep from '@/app/onboarding/OnboardingStep'
 import { useEffect, useState, useReducer } from 'react'
 
-const steps = [
-	'Creating your account',
-	'Syncing with Gmail',
-	'Subscribing to new emails'
+const steps: { action: string, dataRequired: string }[] = [
+	{
+		action: 'Creating your account',
+		dataRequired: 'userEmail',
+	},
+	{
+		action: 'Syncing with Gmail',
+		dataRequired: 'latestThreadId',
+	},
+	{
+		action: 'Subscribing to new emails',
+		dataRequired: 'latestHistoryId',
+	},
 ]
 
 export type StepStatus = 'pending' | 'in_progress' | 'complete'
@@ -21,7 +30,7 @@ function initialiseState(): StepsState {
 }
 
 type OnboardingStepsProps = {
-	userEmail?: string
+	[key: string]: string
 }
 
 function randomInterval(): number {
@@ -59,9 +68,7 @@ function stepsReducer(state: StepsState, action: StepsDispatchAction): StepsStat
 	throw Error(`Could not find action type: ${action.type}`)
 }
 
-export default function OnboardingSteps({
-	userEmail,
-}: OnboardingStepsProps) {
+export default function OnboardingSteps(props: OnboardingStepsProps) {
 	const [ms, setMs] = useState<number>(0)
 	const [intervalState, setIntervalState] = useState<NodeJS.Timeout | undefined>(undefined)
 	const [stepsStatus, setStepsStatus] = useReducer(stepsReducer, initialiseState())
@@ -97,7 +104,14 @@ export default function OnboardingSteps({
 	return (
 		<ul>
 			{steps.map((step, index) => {
-				return <OnboardingStep key={index} step={step} status={stepsStatus[index]} />
+				return (
+					<OnboardingStep
+						key={index}
+						step={step}
+						hasData={Boolean(props[step.dataRequired])}
+						status={stepsStatus[index]}
+					/>
+				)
 			})}
 		</ul>
 	)
