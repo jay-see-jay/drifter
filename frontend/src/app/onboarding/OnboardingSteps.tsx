@@ -51,7 +51,9 @@ function stepsReducer(state: StepsState, action: StepsDispatchAction): StepsStat
 		if (inProgressStep != undefined) {
 			nextState[inProgressStep] = 'complete'
 		}
-		nextState[nextStep] = 'in_progress'
+		if (nextStep < steps.length) {
+			nextState[nextStep] = 'in_progress'
+		}
 		return nextState
 	}
 	throw Error(`Could not find action type: ${action.type}`)
@@ -84,12 +86,8 @@ export default function OnboardingSteps({
 			return
 		}
 		const shouldProgress = ms >= lastChangeAtSeconds + waitFor
-		if (! shouldProgress) {
-			console.log('Should not progree')
-			return
-		}
+		if (! shouldProgress) return
 		
-		console.log('Progressing...')
 		setStepsStatus({ type: 'next' })
 		setLastChangeAtSeconds(ms)
 		setWaitFor(randomInterval())
