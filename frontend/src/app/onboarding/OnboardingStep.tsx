@@ -1,7 +1,7 @@
 import MoreHoriz from '@/components/icons/MoreHoriz'
 import Done from '@/components/icons/Done'
 import ProgressActivity from '@/components/icons/ProgressActivity'
-import { StepStatus} from '@/app/onboarding/page'
+import { StepStatus } from '@/app/onboarding/OnboardingSteps'
 
 type OnboardingStepProps = {
 	step: string

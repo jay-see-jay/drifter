@@ -2,6 +2,7 @@ import mysql, { RowDataPacket } from 'mysql2/promise'
 
 
 type User = {
+	
 	email: string
 }
 
