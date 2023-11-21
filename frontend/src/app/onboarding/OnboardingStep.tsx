@@ -2,8 +2,8 @@ import MoreHoriz from '@/components/icons/MoreHoriz'
 import Done from '@/components/icons/Done'
 import Close from '@/components/icons/Close'
 import ProgressActivity from '@/components/icons/ProgressActivity'
-import { StepStatus, Step } from '@/app/onboarding/OnboardingSteps'
-import { useEffect, useState, useTransition } from 'react';
+import { StepStatus, Step, StepsDispatchAction } from '@/app/onboarding/OnboardingSteps'
+import { useEffect, useTransition, Dispatch } from 'react';
 
 
 function getIcon(status: StepStatus, hasData?: boolean) {
@@ -20,32 +20,47 @@ function getIcon(status: StepStatus, hasData?: boolean) {
 
 type OnboardingStepProps = {
 	step: Step
+	stepIndex: number
 	status?: StepStatus
 	userId: number
+	updateStepStatus: Dispatch<StepsDispatchAction>
 }
 
 export default function OnboardingStep({
 	step,
+	stepIndex,
 	status = 'pending',
 	userId,
+	updateStepStatus,
 }: OnboardingStepProps) {
-	const [hasData, setHasData] = useState<boolean | undefined>(undefined)
 	const [isPending, startTransition] = useTransition()
 
 	const isInProgress = status === 'in_progress'
 
 	useEffect(() => {
-		if (isInProgress && hasData === undefined && ! isPending) {
+		if (isInProgress && step.hasData === undefined && ! isPending) {
 			startTransition(async () => {
 				if (! step.action) {
-					setHasData(Boolean(userId))
+					updateStepStatus({
+						type: 'update',
+						payload: {
+							step: stepIndex,
+							hasData: true
+						}
+					})
 					return
 				}
-				const data = await step.action(userId)
-				setHasData(data)
+				const hasData = await step.action(userId)
+				updateStepStatus({
+					type: 'update',
+					payload: {
+						step: stepIndex,
+						hasData,
+					}
+				})
 			})
 		}
-	}, [status, hasData, isPending, isInProgress, step, userId])
+	}, [status, stepIndex, updateStepStatus, isPending, isInProgress, step, userId])
 
 	const divClasses = [
 		'grid',
@@ -59,7 +74,7 @@ export default function OnboardingStep({
 		<div
 			className={divClasses.join(' ')}
 		>
-			{getIcon(status, hasData)}
+			{getIcon(status, step.hasData)}
 			<li
 				className={[
 					'text-xl',

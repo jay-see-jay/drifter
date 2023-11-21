@@ -38,10 +38,16 @@ function randomInterval(): number {
 	return Math.random() * 2000 + 250
 }
 
-type StepsDispatchAction = {
+export type StepsDispatchAction = {
 	type: 'next'
 	payload: {
 		step: number | undefined
+	}
+} | {
+	type: 'update'
+	payload: {
+		step: number
+		hasData: boolean
 	}
 }
 
@@ -75,7 +81,17 @@ function stepsReducer(state: Step[], action: StepsDispatchAction): Step[] {
 		}
 		return nextState
 	}
-	throw Error(`Could not find action type: ${action.type}`)
+
+	if (action.type === 'update') {
+		const { step, hasData } = action.payload
+		const nextState = [...state]
+
+		nextState[step].hasData = hasData
+
+		return nextState
+	}
+
+	throw Error('Could not find action type')
 }
 
 type OnboardingStepsProps = {
@@ -127,8 +143,10 @@ export default function OnboardingSteps({ user }: OnboardingStepsProps) {
 					<OnboardingStep
 						key={index}
 						step={step}
+						stepIndex={index}
 						userId={user.pk}
 						status={stepsStatus[index].status}
+						updateStepStatus={setStepsStatus}
 					/>
 				)
 			})}
