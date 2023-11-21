@@ -345,8 +345,7 @@ class Gmail:
 
         return labels
 
-    @staticmethod
-    def parse_message_headers(part: GmailMessagePart) -> ParsedMessageHeaders:
+    def parse_message_headers(self, part: GmailMessagePart) -> ParsedMessageHeaders:
         # TODO: Try to extract pure email address only
         headers = part.headers
         email_to = ''
@@ -354,9 +353,9 @@ class Gmail:
         subject = ''
         for hdr in headers:
             if hdr['name'] == 'To':
-                email_to = check_for_my_email(hdr['value'])
+                email_to = check_for_my_email(self.user.email, hdr['value'])
             elif hdr['name'] == 'From':
-                email_from = check_for_my_email(hdr['value'])
+                email_from = check_for_my_email(self.user.email, hdr['value'])
             elif hdr['name'] == 'Subject':
                 subject = hdr['value']
 
