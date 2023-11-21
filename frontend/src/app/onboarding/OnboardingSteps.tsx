@@ -1,40 +1,38 @@
 'use client'
 import OnboardingStep from '@/app/onboarding/OnboardingStep'
 import { useEffect, useState, useReducer } from 'react'
-
-const steps = [
-	{
-		action: 'Creating your account',
-		dataRequired: 'userEmail',
-	},
-	{
-		action: 'Syncing with Gmail',
-		dataRequired: 'messageHeaderId',
-	},
-	{
-		action: 'Subscribing to new emails',
-		dataRequired: 'latestHistoryId',
-	},
-] as const
-
-type Steps = typeof steps
-type StepsData = Steps[number]['dataRequired']
+import { User } from '@/lib/database'
+import isGmailSyncComplete from '@/actions/isGmailSyncComplete'
+import isGmailWatchSetUp from '@/actions/isGmailWatchSetUp'
 
 export type StepStatus = 'pending' | 'in_progress' | 'complete'
 
-export type StepsState = { [key: number]: StepStatus };
-
-function initialiseState(): StepsState {
-	const state: StepsState = {}
-	for (let i = 0; i < steps.length; i++) {
-		state[i] = 'pending'
-	}
-	return state
+export type Step = {
+	description: string
+	status: StepStatus
+	hasData: boolean | undefined
+	action?: (userId: number) => Promise<boolean>
 }
 
-type OnboardingStepsProps = {
-	[key in StepsData]: boolean
-}
+const steps: Step[] = [
+	{
+		description: 'Creating your account',
+		status: 'pending',
+		hasData: undefined,
+	},
+	{
+		description: 'Syncing with Gmail',
+		status: 'pending',
+		hasData: undefined,
+		action: isGmailSyncComplete,
+	},
+	{
+		description: 'Subscribing to new emails',
+		status: 'pending',
+		hasData: undefined,
+		action: isGmailWatchSetUp,
+	},
+]
 
 function randomInterval(): number {
 	return Math.random() * 2000 + 250
@@ -42,39 +40,52 @@ function randomInterval(): number {
 
 type StepsDispatchAction = {
 	type: 'next'
+	payload: {
+		step: number | undefined
+	}
 }
 
-function getInProgressStep(state: StepsState): number | undefined {
-	for (let i = 0; i < steps.length; i++) {
-		const value = state[i]
-		if (value && value === 'in_progress') {
+function getInProgressStep(state: Step[]): number | undefined {
+	for (let i = 0; i < state.length; i++) {
+		const step = state[i]
+		if (step && step.status === 'in_progress') {
 			return i
 		}
 	}
 	return undefined
 }
 
-function stepsReducer(state: StepsState, action: StepsDispatchAction): StepsState {
+function getNextStep(inProgressStep: number | undefined): number {
+	if (inProgressStep === undefined) return 0
+	return inProgressStep + 1
+}
+
+function stepsReducer(state: Step[], action: StepsDispatchAction): Step[] {
 	if (action.type === 'next') {
-		const inProgressStep = getInProgressStep(state)
-		const nextStep = inProgressStep === undefined ? 0 : inProgressStep + 1
+		const inProgressStep = action.payload.step
+		const nextStep = getNextStep(inProgressStep)
 		
-		const nextState = Object.assign({}, state)
+		const nextState = [...state]
+
 		if (inProgressStep != undefined) {
-			nextState[inProgressStep] = 'complete'
+			nextState[inProgressStep].status = 'complete'
 		}
-		if (nextStep < steps.length) {
-			nextState[nextStep] = 'in_progress'
+		if (nextStep < state.length) {
+			nextState[nextStep].status = 'in_progress'
 		}
 		return nextState
 	}
 	throw Error(`Could not find action type: ${action.type}`)
 }
 
-export default function OnboardingSteps(props: OnboardingStepsProps) {
+type OnboardingStepsProps = {
+	user: User
+}
+
+export default function OnboardingSteps({ user }: OnboardingStepsProps) {
 	const [ms, setMs] = useState<number>(0)
 	const [intervalState, setIntervalState] = useState<NodeJS.Timeout | undefined>(undefined)
-	const [stepsStatus, setStepsStatus] = useReducer(stepsReducer, initialiseState())
+	const [stepsStatus, setStepsStatus] = useReducer(stepsReducer, steps)
 	const [waitFor, setWaitFor] = useState(250)
 	const [lastChangeAtSeconds, setLastChangeAtSeconds] = useState<number>(0)
 	
@@ -89,7 +100,7 @@ export default function OnboardingSteps(props: OnboardingStepsProps) {
 	
 	useEffect(() => {
 		if (! intervalState) return
-		const isLastStepComplete = stepsStatus[steps.length - 1 ] === 'complete'
+		const isLastStepComplete = stepsStatus[stepsStatus.length - 1 ].status === 'complete'
 		if (isLastStepComplete) {
 			clearInterval(intervalState)
 			setIntervalState(undefined)
@@ -98,7 +109,12 @@ export default function OnboardingSteps(props: OnboardingStepsProps) {
 		const shouldProgress = ms >= lastChangeAtSeconds + waitFor
 		if (! shouldProgress) return
 		
-		setStepsStatus({ type: 'next' })
+		const inProgressStep = getInProgressStep(stepsStatus)
+
+		setStepsStatus({
+			type: 'next',
+			payload: { step: inProgressStep }
+		})
 		setLastChangeAtSeconds(ms)
 		setWaitFor(randomInterval())
 		
@@ -106,13 +122,13 @@ export default function OnboardingSteps(props: OnboardingStepsProps) {
 	
 	return (
 		<ul>
-			{steps.map((step, index) => {
+			{stepsStatus.map((step, index) => {
 				return (
 					<OnboardingStep
 						key={index}
 						step={step}
-						hasData={props[step.dataRequired]}
-						status={stepsStatus[index]}
+						userId={user.pk}
+						status={stepsStatus[index].status}
 					/>
 				)
 			})}

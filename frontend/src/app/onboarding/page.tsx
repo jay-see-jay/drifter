@@ -9,7 +9,6 @@ export default async function Onboarding() {
 	const clerkUser = await currentUser()
 	if (! clerkUser) redirect('/')
 	const user = await db.getUser(clerkUser.id)
-	const messageHeader = await db.getMessageHeader(user)
 	
 	return (
 		<ul
@@ -19,9 +18,7 @@ export default async function Onboarding() {
 			].join(' ')}
 		>
 			<OnboardingSteps
-				userEmail={Boolean(user.email)}
-				messageHeaderId={Boolean(messageHeader.message_id)}
-				latestHistoryId={true}
+				user={user}
 			/>
 		</ul>
 	)
