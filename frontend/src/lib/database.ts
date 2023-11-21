@@ -69,8 +69,8 @@ export default class Database {
 	}
 
 	async getHistoryId(userId: number) {
-		const allColumns = [ 'id' ]
-		const query = `SELECT ${allColumns.join(', ')} FROM history WHERE user_pk = ? LIMIT 1`
+		const allColumns = [ 'history_id' ]
+		const query = `SELECT ${allColumns.join(', ')} FROM mailbox_subscriptions WHERE user_pk = ? LIMIT 1`
 		const variables = [userId]
 		
 		return this.read<HistoryRecord>(query, variables)

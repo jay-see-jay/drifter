@@ -49,7 +49,7 @@ class Gmail:
         # Limit set as per https://developers.google.com/gmail/api/guides/batch
         self._batch_request_limit = 50
 
-    def watch_mailbox(self):
+    def watch_mailbox(self) -> WatchSubscriptionResponse:
         cloud_project = os.getenv('GOOGLE_PROJECT_ID')
         pubsub_topic = os.getenv('GOOGLE_PUBSUB_TOPIC')
 
@@ -59,8 +59,7 @@ class Gmail:
             'labelFilterBehavior': 'INCLUDE'
         }
         try:
-            response = self.api.users().watch(userId='me', body=body).execute()
-            return response.get('historyId')
+            return self.api.users().watch(userId='me', body=body).execute()
         except HttpError as e:
             raise e
 

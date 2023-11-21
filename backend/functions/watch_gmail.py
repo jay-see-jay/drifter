@@ -3,7 +3,7 @@ from mysql.connector import Error as MySQLError
 from werkzeug.exceptions import HTTPException
 from googleapiclient.errors import HttpError
 
-from repositories import UserRepo
+from repositories import UserRepo, HistoryRepo
 from services import Gmail, Clerk
 
 
@@ -18,9 +18,11 @@ def handle_watch_gmail(request: flask.Request) -> flask.Response:
         return flask.make_response(e.description, 400)
 
     gmail = Gmail(user, oauth)
+    history_repo = HistoryRepo(user)
 
     try:
-        gmail.watch_mailbox()
+        response = gmail.watch_mailbox()
+        history_repo.create_watch(response)
     except HttpError as e:
         return flask.make_response(f'Failed to watch user\'s mailbox')
 
