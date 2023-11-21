@@ -1,7 +1,7 @@
 import mysql from 'mysql2/promise'
 
 
-type User = {
+export type User = {
 	pk: number
 	email: string
 }
@@ -60,18 +60,18 @@ export default class Database {
 		return this.read<User>(query, variables)
 	}
 
-	async getMessageHeader(user: User) {
+	async getMessageHeader(userId: number) {
 		const allColumns = [ 'message_id' ]
 		const query = `SELECT ${allColumns.join(', ')} FROM message_headers WHERE user_pk = ? LIMIT 1`
-		const variables = [user.pk]
+		const variables = [userId]
 
 		return this.read<MessageHeader>(query, variables)
 	}
 
-	async getHistoryId(user: User) {
+	async getHistoryId(userId: number) {
 		const allColumns = [ 'id' ]
 		const query = `SELECT ${allColumns.join(', ')} FROM history WHERE user_pk = ? LIMIT 1`
-		const variables = [user.pk]
+		const variables = [userId]
 		
 		return this.read<HistoryRecord>(query, variables)
 	}
