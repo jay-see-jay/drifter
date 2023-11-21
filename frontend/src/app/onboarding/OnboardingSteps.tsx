@@ -2,20 +2,23 @@
 import OnboardingStep from '@/app/onboarding/OnboardingStep'
 import { useEffect, useState, useReducer } from 'react'
 
-const steps: { action: string, dataRequired: string }[] = [
+const steps = [
 	{
 		action: 'Creating your account',
 		dataRequired: 'userEmail',
 	},
 	{
 		action: 'Syncing with Gmail',
-		dataRequired: 'latestThreadId',
+		dataRequired: 'messageHeaderId',
 	},
 	{
 		action: 'Subscribing to new emails',
 		dataRequired: 'latestHistoryId',
 	},
-]
+] as const
+
+type Steps = typeof steps
+type StepsData = Steps[number]['dataRequired']
 
 export type StepStatus = 'pending' | 'in_progress' | 'complete'
 
@@ -30,7 +33,7 @@ function initialiseState(): StepsState {
 }
 
 type OnboardingStepsProps = {
-	[key: string]: string
+	[key in StepsData]: boolean
 }
 
 function randomInterval(): number {
@@ -108,7 +111,7 @@ export default function OnboardingSteps(props: OnboardingStepsProps) {
 					<OnboardingStep
 						key={index}
 						step={step}
-						hasData={Boolean(props[step.dataRequired])}
+						hasData={props[step.dataRequired]}
 						status={stepsStatus[index]}
 					/>
 				)
