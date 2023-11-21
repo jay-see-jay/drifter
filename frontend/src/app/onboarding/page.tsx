@@ -8,7 +8,9 @@ const db = new Database()
 export default async function Onboarding() {
 	const clerkUser = await currentUser()
 	if (! clerkUser) redirect('/')
-	const user = await db.get_user(clerkUser.id)
+	const user = await db.getUser(clerkUser.id)
+	const messageHeader = await db.getMessageHeader(user)
+	const history = await db.getHistoryId(user)
 	
 	return (
 		<ul
@@ -17,7 +19,11 @@ export default async function Onboarding() {
 				'gap-2',
 			].join(' ')}
 		>
-			<OnboardingSteps userEmail={user.email} />
+			<OnboardingSteps
+				userEmail={Boolean(user.email)}
+				messageHeaderId={Boolean(messageHeader.message_id)}
+				latestHistoryId={Boolean(history.id)}
+			/>
 		</ul>
 	)
 }
