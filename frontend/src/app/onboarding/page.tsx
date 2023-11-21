@@ -10,7 +10,6 @@ export default async function Onboarding() {
 	if (! clerkUser) redirect('/')
 	const user = await db.getUser(clerkUser.id)
 	const messageHeader = await db.getMessageHeader(user)
-	const history = await db.getHistoryId(user)
 	
 	return (
 		<ul
@@ -22,7 +21,7 @@ export default async function Onboarding() {
 			<OnboardingSteps
 				userEmail={Boolean(user.email)}
 				messageHeaderId={Boolean(messageHeader.message_id)}
-				latestHistoryId={Boolean(history.id)}
+				latestHistoryId={true}
 			/>
 		</ul>
 	)
