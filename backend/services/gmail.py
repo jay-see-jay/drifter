@@ -396,7 +396,7 @@ class Gmail:
     def decode_body(self, body: GmailMessagePartBody) -> str:
         return self.decode_bytes(body['data'])
 
-    def create_draft(self, draft: str, recipient: str, thread_id: str):
+    def create_draft(self, draft: str, recipient: str, thread_id: str) -> GmailDraft:
         msg = EmailMessage()
 
         msg.set_content(draft)
@@ -415,8 +415,13 @@ class Gmail:
         }
 
         try:
-            draft = self.api.users().drafts().create(userId="me", body=create_message).execute()
-            print(f'Draft id: {draft["id"]}\nDraft message: {draft["message"]}')
+            response = self.api.users().drafts().create(userId="me", body=create_message).execute()
+            draft = GmailDraft(
+                draft_id=response.get('id'),
+                message=response.get('message')
+            )
+            print(f'Draft id: {draft.draft_id}\nDraft message: {draft.message.snippet}')
+            return draft
 
         except HttpError as e:
             print(f'Failed to create draft in Gmail: {e}')

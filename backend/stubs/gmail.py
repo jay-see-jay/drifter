@@ -118,6 +118,25 @@ class GmailMessage:
         self.deleted_history_id = deleted_history_id
 
 
+class GmailDraft:
+    def __init__(
+        self,
+        draft_id: str,
+        message: dict,
+    ):
+        self.draft_id = draft_id
+        self.message = GmailMessage(
+            message_id=message.get('id'),
+            thread_id=message.get('threadId'),
+            label_ids=message.get('labelIds'),
+            snippet=message.get('snippet'),
+            history_id=message.get('historyId'),
+            internal_date=message.get('internalDate'),
+            payload=message.get('payload'),
+            size_estimate=message.get('sizeEstimate')
+        )
+
+
 class GmailThread:
     def __init__(self,
                  thread_id: str,

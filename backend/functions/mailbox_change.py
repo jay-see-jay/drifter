@@ -62,7 +62,11 @@ def handle_mailbox_change(cloud_event: CloudEvent) -> None:
             break
         recipient = messages[-1]['headers']['email_from']
         print('Adding draft reply.')
-        gmail.create_draft(draft_reply, recipient, thread_id)
+        draft = gmail.create_draft(draft_reply, recipient, thread_id)
+        # TODO : draft.message - store as message
+        # TODO : Extract and store headers
+        # TODO : Extract and store labels
+        # TODO : Extract and store message parts
 
 
 if __name__ == "__main__":
