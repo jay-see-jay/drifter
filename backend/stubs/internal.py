@@ -1,4 +1,4 @@
-from typing import TypedDict, Literal, Optional
+from typing import TypedDict, Optional
 from datetime import datetime
 
 
@@ -23,3 +23,7 @@ class Migration:
         self.date = date
         self.date_name = f'{date.strftime("%Y-%m-%d")}_{name}'
         self.completed_at = completed_at
+
+
+class DatabaseError(Exception):
+    pass
