@@ -1,68 +1,74 @@
 from datetime import datetime
-from typing import List
-
-from repositories import *
-from models import User
-
-
-class MessageRepos:
-    def __init__(
-        self,
-        thread_repo: ThreadRepo,
-        message_repo: MessageRepo,
-        message_part_repo: MessagePartRepo,
-        header_repo: HeaderRepo,
-        label_repo: LabelRepo,
-    ):
-        self.thread = thread_repo
-        self.message = message_repo
-        self.part = message_part_repo
-        self.header = header_repo
-        self.label = label_repo
+from typing import Optional, List, Union, Tuple
+from stubs import GmailMessagePartResponse
+from models import MessagePart
 
 
-# TODO : MessagePart class
-# TODO : Header class
+def flatten_parts(
+    part: GmailMessagePartResponse,
+    parts: List[GmailMessagePartResponse]
+):
+    new_part: GmailMessagePartResponse = {
+        'partId': part.get('partId'),
+        'mimeType': part.get('mimeType'),
+        'filename': part.get('filename'),
+        'headers': part.get('headers'),
+        'body': part.get('body'),
+        'parts': None,
+    }
+    parts.append(new_part)
+    child_parts = part.get('parts')
+    if child_parts:
+        for child_part in child_parts:
+            flatten_parts(child_part, parts)
+
 
 class Message:
     def __init__(
         self,
-        repos: MessageRepos,
         message_id: str,
-        thread_id: str,
-        label_ids: List[str],
-        snippet: str,
         history_id: str,
-        internal_date: datetime,
-        size_estimate: int,
-        payload: dict = None,
-        added_history_id: str = None,
-        deleted_history_id: str = None,
+        payload: Optional[GmailMessagePartResponse] = None,
+        label_ids: Optional[List[str]] = None,
+        snippet: Optional[str] = None,
+        internal_date: Optional[Union[datetime, str]] = None,
+        size_estimate: Optional[int] = None,
+        added_history_id: Optional[str] = None,
+        deleted_history_id: Optional[str] = None,
     ):
-        self.repos = repos
-        self.thread_id = thread_id
         self.message_id = message_id
+        self.history_id = history_id
         self.label_ids = label_ids
         self.snippet = snippet
-        self.history_id = history_id
-        self.internal_date = internal_date
+        if isinstance(internal_date, datetime):
+            self.internal_date = internal_date
+        else:
+            self.internal_date = datetime.fromtimestamp(float(internal_date) / 1000)
         self.size_estimate = size_estimate
-        self.payload = payload
         self.added_history_id = added_history_id
         self.deleted_history_id = deleted_history_id
+        flattened_parts: List[GmailMessagePartResponse] = []
+        flatten_parts(payload, flattened_parts)
+        self.parts = [
+            MessagePart(
+                part_id=part.get('partId'),
+                mime_type=part.get('mimeType'),
+                filename=part.get('filename'),
+                headers=part.get('headers'),
+                body=part.get('body'),
+            )
+            for part in flattened_parts
+        ]
+        self.create_columns = [
+            'id',
+            'snippet',
+            'user_pk',
+            'thread_id',
+            'history_id',
+            'internal_date',
+            'added_history_id',
+            'size_estimate',
+        ]
 
 
-def create_message(user: User) -> Message:
-    thread_repo = ThreadRepo(user)
-    message_repo = MessageRepo(user)
-    message_part_repo = MessagePartRepo()
-    header_repo = HeaderRepo()
-    label_repo = LabelRepo(user)
-    repos = MessageRepos(
-        thread_repo,
-        message_repo,
-        message_part_repo,
-        header_repo,
-        label_repo,
-    )
-    return Message(repos)
+MessageCreateVariablesType = Tuple[str, str, int, str, str, datetime, str, int]
