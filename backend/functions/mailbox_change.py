@@ -1,9 +1,11 @@
-from typing import List
+from typing import List, Dict
 
 from cloudevents.http import CloudEvent
 
 from services import Gmail, Clerk, OpenAI
-from stubs import ParsedMessage, ParsedMessageHeaders
+from factories.draft_factory import create_draft
+from factories.thread_factory import create_thread
+from stubs import ParsedMessage, ParsedMessageHeaders, GmailLabel
 from repositories import UserRepo, ThreadRepo
 
 
@@ -62,7 +64,9 @@ def handle_mailbox_change(cloud_event: CloudEvent) -> None:
             break
         recipient = messages[-1]['headers']['email_from']
         print('Adding draft reply.')
-        draft = gmail.create_draft(draft_reply, recipient, thread_id)
+        draft_response = gmail.create_draft(draft_reply, recipient, thread_id)
+        draft = create_draft(draft_response)
+        draft.store(user.pk)
         # TODO : draft.message - store as message
         # TODO : Extract and store headers
         # TODO : Extract and store labels
@@ -70,18 +74,40 @@ def handle_mailbox_change(cloud_event: CloudEvent) -> None:
 
 
 if __name__ == "__main__":
-    test_attributes = {
-        'specversion': '1.0',
-        'type': 'google.cloud.pubsub.topic.v1.messagePublished',
-        'source': '//pubsub.googleapis.com/projects/',
-        'datacontenttype': 'application/json',
-        'time': '2023-10-13T12:00:14.631Z'
-    }
-    test_data = {
-        'message': {
-            'data': 'eyJlbWFpbEFkZHJlc3MiOiIxMDNqY2pAZ21haWwuY29tIiwiaGlzdG9yeUlkIjoxMjU3NzZ9',
-        },
-    }
+    user_repo = UserRepo()
+    user = user_repo.get_user_by_email('103jcj@gmail.com')
+    oauth = Clerk().get_oauth_token(user.clerk_user_id)
+    gmail = Gmail(user, oauth)
 
-    test_cloud_event = CloudEvent.create(test_attributes, test_data)
-    handle_mailbox_change(test_cloud_event)
+    thread_id = '18bf3f5e1e2ab25d'
+    # draft_response = gmail.create_draft('Hi', 'email@email.com', thread_id)
+    # draft = create_draft(draft_response)
+    # draft.store(user.pk)
+    # print(draft_response)
+    message_id = '18c01cc75959976f'
+    thread_response = gmail.get_thread_by_id(thread_id)
+    thread = create_thread(user, thread_response)
+    label_ids = thread.get_all_label_ids()
+    labels = gmail.get_labels(list(label_ids))
+    labels_dict: Dict[str, GmailLabel] = dict()
+    for label in labels:
+        labels_dict[label.label_id] = label
+    thread.labels = labels_dict
+    thread.store()
+    # message = create_message(user, message_response)
+    # print(message)
+    # test_attributes = {
+    #     'specversion': '1.0',
+    #     'type': 'google.cloud.pubsub.topic.v1.messagePublished',
+    #     'source': '//pubsub.googleapis.com/projects/',
+    #     'datacontenttype': 'application/json',
+    #     'time': '2023-10-13T12:00:14.631Z'
+    # }
+    # test_data = {
+    #     'message': {
+    #         'data': 'eyJlbWFpbEFkZHJlc3MiOiIxMDNqY2pAZ21haWwuY29tIiwiaGlzdG9yeUlkIjoxMjU3NzZ9',
+    #     },
+    # }
+    #
+    # test_cloud_event = CloudEvent.create(test_attributes, test_data)
+    # handle_mailbox_change(test_cloud_event)
