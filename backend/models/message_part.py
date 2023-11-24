@@ -47,3 +47,16 @@ class MessagePart:
             data=body.get('data'),
             attachment_id=body.get('attachmentId'),
         )
+
+    def get_parent_part_id(self) -> Optional[str]:
+        if not self.part_id:
+            return None
+
+        parent_part_id = self.part_id
+        if parent_part_id[-1].isdigit():
+            parent_part_id = parent_part_id[:-1]
+
+        if parent_part_id and parent_part_id[-1] == '.':
+            parent_part_id = parent_part_id[:-1]
+
+        return parent_part_id

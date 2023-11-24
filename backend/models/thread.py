@@ -109,7 +109,6 @@ class Thread:
         query = self.db.cursor.statement
         print('query', query)
         self.update_messages(existing_messages)
-        # TODO : Update messages_labels
 
     def insert_thread(self):
         query = self.db.create_query(self.create_columns, 'threads')
@@ -144,8 +143,7 @@ class Thread:
             for msg in messages
         ]
         self.db.insert_many(query, variables)
-        # TODO : Insert message_parts
-        # TODO : Insert message_headers
+        self.insert_message_parts(messages)
         self.insert_messages_labels(messages)
 
     def insert_message_parts(self, messages: List[Message]):
@@ -160,10 +158,12 @@ class Thread:
             'body_data',
             'parent_message_part_id',
         ]
-        variables: List[Tuple[MessagePartCreateVariablesType]] = []
+        query = self.db.create_query(columns, 'message_parts')
+        part_variables: List[tuple] = []
+        header_variables: List[tuple] = []
         for message in messages:
             for part in message.parts:
-                variables.append((
+                part_variables.append((
                     self.user.pk,
                     message.message_id,
                     part.part_id,
@@ -172,9 +172,29 @@ class Thread:
                     part.body.attachment_id,
                     part.body.size,
                     part.body.data,
-                    '',
+                    part.get_parent_part_id(),
                 ))
-        # TODO : Finish inserting message_parts
+                for header in part.headers:
+                    header_variables.append((
+                        self.user.pk,
+                        message.message_id,
+                        part.part_id,
+                        header.name,
+                        header.value,
+                    ))
+        self.db.insert_many(query, part_variables)
+        self.insert_message_headers(header_variables)
+
+    def insert_message_headers(self, variables: List[tuple]):
+        header_columns = [
+            'user_pk',
+            'message_id',
+            'message_part_id',
+            'name',
+            'value',
+        ]
+        query = self.db.create_query(header_columns, 'message_headers')
+        self.db.insert_many(query, variables)
 
     def insert_messages_labels(self, messages: List[Message]):
         columns = ['label_pk', 'message_id']
@@ -186,7 +206,7 @@ class Thread:
                     self.labels[label_id].pk,
                     message.message_id,
                 ))
-        print('variables', variables)
+        self.db.insert_many(query, variables)
 
     def update_messages(self, existing_messages: List[Message]):
         query = 'UPDATE messages SET history_id=%s WHERE id=%s'
@@ -197,6 +217,10 @@ class Thread:
                 message.message_id,
             ))
         self.db.insert_many(query, variables)
+        # TODO : Update messages_labels
+        # TODO : Get messages_labels WHERE message_id in existing_messages
+        # TODO : Compare label_ids in existing_messages with what's returned by the previous query
+        # TODO : Add / remove label relations as needed
 
     def insert_labels(self, labels: List[GmailLabel]):
         if len(labels) == 0:

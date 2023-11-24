@@ -202,7 +202,7 @@ LabelCreateVariablesType = Tuple[
     str, str, MessageListVisibility, LabelListVisibility, GmailLabelType, int, int, int, int, str, str, int]
 LabelUpdateVariablesType = Tuple[
     str, MessageListVisibility, LabelListVisibility, GmailLabelType, int, int, int, int, str, str, str, int]
-MessagePartCreateVariablesType = Tuple[int, str, str, str, str, str, int, str, str]
+MessagePartCreateVariablesType = Tuple[int, str, str, str, str, str, int, str, bytes]
 
 
 class GmailLabelColor:
