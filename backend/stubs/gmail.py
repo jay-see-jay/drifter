@@ -1,4 +1,4 @@
-from typing import List, TypedDict, Literal, Optional
+from typing import List, TypedDict, Literal, Optional, Tuple
 from datetime import datetime
 
 
@@ -118,23 +118,51 @@ class GmailMessage:
         self.deleted_history_id = deleted_history_id
 
 
-class GmailDraft:
-    def __init__(
-        self,
-        draft_id: str,
-        message: dict,
-    ):
-        self.draft_id = draft_id
-        self.message = GmailMessage(
-            message_id=message.get('id'),
-            thread_id=message.get('threadId'),
-            label_ids=message.get('labelIds'),
-            snippet=message.get('snippet'),
-            history_id=message.get('historyId'),
-            internal_date=message.get('internalDate'),
-            payload=message.get('payload'),
-            size_estimate=message.get('sizeEstimate')
-        )
+class GmailHeaderResponse(TypedDict):
+    name: str
+    value: str
+
+
+class GmailMessagePartBodyResponse(TypedDict):
+    attachmentId: str
+    size: int
+    data: str
+
+
+class GmailMessagePartResponse(TypedDict):
+    partId: str
+    mimeType: str
+    filename: str
+    headers: List[GmailHeaderResponse]
+    body: GmailMessagePartBodyResponse
+    parts: Optional[List['GmailMessagePartResponse']]
+
+
+class GmailMessageBaseResponse(TypedDict):
+    id: str
+    threadId: str
+    labelIds: List[str]
+
+
+class GmailMessageResponse(GmailMessageBaseResponse):
+    snippet: str
+    historyId: str
+    internalDate: str
+    payload: GmailMessagePartResponse
+    sizeEstimate: int
+    raw: str
+
+
+class GmailDraftResponse(TypedDict):
+    id: str
+    message: GmailMessageBaseResponse
+
+
+class GmailThreadResponse(TypedDict):
+    id: str
+    snippet: str
+    historyId: str
+    messages: List[GmailMessageResponse]
 
 
 class GmailThread:
@@ -170,6 +198,11 @@ class GmailThreadsListResponse(TypedDict):
 MessageListVisibility = Literal['show', 'hide']
 LabelListVisibility = Literal['labelShow', 'labelShowIfUnread', 'labelHide']
 GmailLabelType = Literal['system', 'user']
+LabelCreateVariablesType = Tuple[
+    str, str, MessageListVisibility, LabelListVisibility, GmailLabelType, int, int, int, int, str, str, int]
+LabelUpdateVariablesType = Tuple[
+    str, MessageListVisibility, LabelListVisibility, GmailLabelType, int, int, int, int, str, str, str, int]
+MessagePartCreateVariablesType = Tuple[int, str, str, str, str, str, int, str, str]
 
 
 class GmailLabelColor:
@@ -193,7 +226,9 @@ class GmailLabel:
                  message_list_visibility: Optional[MessageListVisibility] = None,
                  label_list_visibility: Optional[LabelListVisibility] = None,
                  color: Optional[dict] = None,
+                 pk: Optional[int] = None
                  ):
+        self.pk = pk
         self.label_id = label_id
         self.name = name
         self.message_list_visibility = message_list_visibility
