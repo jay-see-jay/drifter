@@ -1,5 +1,6 @@
-from typing import Optional
+from typing import Optional, Any
 from flask import Request
+from stubs import gmail
 
 
 def check_for_my_email(my_email: str, email: str) -> str:
