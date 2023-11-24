@@ -215,15 +215,11 @@ class Gmail:
         self.batch_request_count = 0
         self.batch = None
 
-    def get_thread(self, thread_id: str) -> GmailThread:
+    def get_thread_by_id(self, thread_id: str) -> GmailThreadResponse:
         try:
-            response = self.api.users().threads().get(userId='me', id=thread_id).execute()
-            return GmailThread(
-                thread_id=response.get('id'),
-                history_id=response.get('historyId'),
-                messages=response.get('messages'),
-                snippet=response.get('snippet'),
-            )
+            return self.api.users().threads().get(
+                userId='me',
+                id=thread_id).execute()
 
         except HttpError as e:
             print(f'Failed to get thread from Gmail: {e}')
@@ -297,23 +293,19 @@ class Gmail:
 
         return messages
 
-    def get_message_by_id(self, message_id: str) -> GmailMessage:
+    def get_message_by_id(self, message_id: str) -> GmailMessageResponse:
         try:
-            response = self.api.users().messages().get(userId='me', id=message_id).execute()
-            return GmailMessage(
-                message_id=response.get('id'),
-                thread_id=response.get('threadId'),
-                label_ids=response.get('labelIds'),
-                snippet=response.get('snippet'),
-                history_id=response.get('historyId'),
-                internal_date=response.get('internalDate'),
-                payload=response.get('payload'),
-                size_estimate=response.get('sizeEstimate'),
-            )
+            message_response = self.api.users().messages().get(
+                userId='me',
+                id=message_id).execute()  # type: GmailMessageResponse
+
+            return message_response
         except HttpError as e:
             print(f'Failed to get message from Gmail: {e}')
 
     def get_labels(self, label_ids: List[str]) -> List[GmailLabel]:
+        # TODO : Change to take Set
+        # TODO : Change to return TypedDict
         labels: List[GmailLabel] = []
 
         if len(label_ids) == 0:
@@ -396,7 +388,7 @@ class Gmail:
     def decode_body(self, body: GmailMessagePartBody) -> str:
         return self.decode_bytes(body['data'])
 
-    def create_draft(self, draft: str, recipient: str, thread_id: str) -> GmailDraft:
+    def create_draft(self, draft: str, recipient: str, thread_id: str = None) -> GmailDraftResponse:
         msg = EmailMessage()
 
         msg.set_content(draft)
@@ -404,7 +396,6 @@ class Gmail:
         msg['To'] = recipient
         msg['From'] = self.user.email
 
-        # encoded messageg
         encoded_message = base64.urlsafe_b64encode(msg.as_bytes()).decode()
 
         create_message = {
@@ -415,12 +406,10 @@ class Gmail:
         }
 
         try:
-            response = self.api.users().drafts().create(userId="me", body=create_message).execute()
-            draft = GmailDraft(
-                draft_id=response.get('id'),
-                message=response.get('message')
-            )
-            print(f'Draft id: {draft.draft_id}\nDraft message: {draft.message.snippet}')
+            draft = self.api.users().drafts().create(
+                userId="me",
+                body=create_message).execute()  # type: GmailDraftResponse
+            print(f'Draft id: {draft["id"]}\nDraft message: {draft["message"]["id"]}')
             return draft
 
         except HttpError as e:
