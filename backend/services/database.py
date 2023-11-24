@@ -1,10 +1,13 @@
 import os
 import mysql.connector
-from typing import List, Optional
+from typing import List, Optional, Literal
 
 from dotenv import load_dotenv
 
 load_dotenv()
+
+DatabaseTable = Literal[
+    'drafts', 'history', 'labels', 'mailbox_subscriptions', 'message_headers', 'message_parts', 'messages', 'messages_history', 'messages_labels', 'messages_labels_history', 'migrations', 'threads', 'users']
 
 
 class Database:
@@ -59,7 +62,7 @@ class Database:
         self.cursor.executemany(query, variables)
 
     @staticmethod
-    def create_query(column_names: List[str], table_name: str) -> str:
+    def create_query(column_names: List[str], table_name: DatabaseTable) -> str:
         columns_str = ', '.join(column_names)
         variables = ['%s'] * len(column_names)
         variables_str = ', '.join(variables)
@@ -72,7 +75,7 @@ class Database:
     def create_update_query(
         self,
         column_names: List[str],
-        table_name: str,
+        table_name: DatabaseTable,
         filter_columns: List[str],
     ) -> str:
 
@@ -80,7 +83,7 @@ class Database:
         filter_strings = map(self.append_string_formatter, filter_columns)
         return f'UPDATE {table_name} SET {", ".join(column_strings)} WHERE {" AND ".join(filter_strings)}'
 
-    def create_delete_query(self, filter_columns: List[str], table_name: str) -> str:
+    def create_delete_query(self, filter_columns: List[str], table_name: DatabaseTable) -> str:
         filter_strings = map(self.append_string_formatter, filter_columns)
         return f'DELETE FROM {table_name} WHERE {" AND ".join(filter_strings)}'
 

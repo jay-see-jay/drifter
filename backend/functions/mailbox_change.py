@@ -94,8 +94,6 @@ if __name__ == "__main__":
         labels_dict[label.label_id] = label
     thread.labels = labels_dict
     thread.store()
-    # message = create_message(user, message_response)
-    # print(message)
     # test_attributes = {
     #     'specversion': '1.0',
     #     'type': 'google.cloud.pubsub.topic.v1.messagePublished',
