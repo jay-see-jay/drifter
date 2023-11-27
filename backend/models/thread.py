@@ -88,27 +88,25 @@ class Thread:
             print(f'Could not verify that thread was in db: {e}')
 
     def store(self):
-        thread_exists = self.in_database()
-        if not thread_exists:
-            print('Implement rest of self.create')
-        else:
-            self.update()
-
-    def update(self):
-        new_messages, existing_messages = self.separate_new_messages()
-        new_labels, existing_labels = self.separate_new_labels()
-        # self.update_thread()
-        # self.insert_labels(new_labels)
-        # self.update_labels(existing_labels)
-        # TODO : Commit here.
-        existing_label_id_pks = self.get_existing_labels()
-        self.db.connection.autocommit = False
-        for label_id in self.labels:
-            self.labels[label_id].pk = existing_label_id_pks[label_id]
-        self.insert_messages(new_messages)
-        query = self.db.cursor.statement
-        print('query', query)
-        self.update_messages(existing_messages)
+        try:
+            thread_exists = self.in_database()
+            new_messages, existing_messages = self.separate_new_messages()
+            new_labels, existing_labels = self.separate_new_labels()
+            if thread_exists:
+                self.update_thread()
+            else:
+                self.insert_thread()
+            self.insert_labels(new_labels)
+            self.update_labels(existing_labels)
+            existing_label_id_pks = self.get_existing_labels()
+            self.db.connection.autocommit = False
+            for label_id in self.labels:
+                self.labels[label_id].pk = existing_label_id_pks[label_id]
+            self.insert_messages(new_messages)
+            self.update_messages(existing_messages)
+            self.db.connection.commit()
+        except mysql.connector.Error as e:
+            print(f'Failed to store thread: {e}')
 
     def insert_thread(self):
         query = self.db.create_query(self.create_columns, 'threads')
@@ -126,8 +124,9 @@ class Thread:
         self.db.insert_one(query, variables)
 
     def insert_messages(self, messages: List[Message] = None):
-        if not messages:
-            messages = self.messages
+        if len(messages) == 0:
+            return
+
         query = self.db.create_query(messages[0].create_columns, 'messages')
         variables: List[MessageCreateVariablesType] = [
             (
@@ -217,10 +216,99 @@ class Thread:
                 message.message_id,
             ))
         self.db.insert_many(query, variables)
-        # TODO : Update messages_labels
-        # TODO : Get messages_labels WHERE message_id in existing_messages
-        # TODO : Compare label_ids in existing_messages with what's returned by the previous query
-        # TODO : Add / remove label relations as needed
+
+        self.update_messages_labels(existing_messages)
+
+    def update_messages_labels(self, existing_messages: List[Message]):
+        current_message_labels = self.get_messages_current_labels(existing_messages)
+        added_message_labels: Dict[str, Set[int]] = dict()
+        removed_message_labels: Dict[str, Set[int]] = dict()
+
+        for message in existing_messages:
+            current_labels = current_message_labels.get(message.message_id)
+            if not current_labels:
+                continue
+
+            for label in message.label_ids:
+                if label not in current_labels:
+                    label_pk = self.labels.get(label).pk
+                    added_message_labels.setdefault(message.message_id, set()).add(label_pk)
+
+            for label in current_labels:
+                if label not in message.label_ids:
+                    label_pk = self.labels.get(label).pk
+                    removed_message_labels.setdefault(message.message_id, set()).add(label_pk)
+
+        self.add_messages_labels(added_message_labels)
+        self.remove_messages_labels(removed_message_labels)
+
+    def add_messages_labels(self, message_labels: Dict[str, Set[int]]):
+        if len(message_labels) == 0:
+            return
+
+        columns = ['label_pk', 'message_id']
+        query = self.db.create_query(columns, 'messages_labels')
+        print('add query', query)
+        variables = []
+
+        for message_id in message_labels:
+            labels = message_labels[message_id]
+            for label_pk in labels:
+                variables.append((
+                    label_pk,
+                    message_id
+                ))
+
+        self.db.insert_many(query, variables)
+
+    def remove_messages_labels(self, message_labels: Dict[str, Set[int]]):
+        if len(message_labels) == 0:
+            return
+
+        columns = ['label_pk', 'message_id']
+        query = self.db.create_delete_query(columns, 'messages_labels')
+        print('remove query', query)
+        variables = []
+
+        for message_id in message_labels:
+            labels = message_labels[message_id]
+            for label_pk in labels:
+                variables.append((
+                    label_pk,
+                    message_id
+                ))
+
+        self.db.insert_many(query, variables)
+
+    def get_messages_current_labels(self, messages: List[Message]) -> Dict[str, Set[str]]:
+        format_strings = ','.join(['%s'] * len(messages))
+        query = """
+            SELECT
+                messages_labels.message_id,
+                GROUP_CONCAT(labels.id) AS labels
+            FROM
+                messages_labels
+            JOIN
+                labels ON messages_labels.label_pk = labels.pk
+            WHERE
+                messages_labels.message_id IN (%s)
+            GROUP BY
+                messages_labels.message_id;
+        """ % format_strings
+
+        variables = tuple([message.message_id for message in messages])
+
+        response = self.db.query(query, variables)
+
+        result: Dict[str, Set[str]] = dict()
+
+        for row in response:
+            message_id = row.get('message_id')
+            message_labels = row.get('labels')
+            message_labels = set(message_labels.split(',') if message_labels else [])
+            result[message_id] = message_labels
+
+        return result
 
     def insert_labels(self, labels: List[GmailLabel]):
         if len(labels) == 0:
