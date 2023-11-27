@@ -22,7 +22,8 @@ class ThreadRepo:
                 (
                     SELECT
                         threads.id AS thread_id,
-                        group_concat(DISTINCT labels.id SEPARATOR ', ') AS labels
+                        GROUP_CONCAT(DISTINCT labels.id SEPARATOR ', ') AS labels,
+                        MAX(messages.internal_date) AS last_message_date
                     FROM
                         threads
                     JOIN
@@ -37,7 +38,9 @@ class ThreadRepo:
             WHERE
                 all_threads.labels LIKE '%INBOX%'
             AND
-                all_threads.labels LIKE '%CATEGORY_PERSONAL%';
+                all_threads.labels LIKE '%CATEGORY_PERSONAL%'
+            ORDER BY all_threads.last_message_date DESC
+            LIMIT 25;
         """
 
         try:
