@@ -1,4 +1,5 @@
 import functions_framework
+from firebase_functions import identity_fn
 from flask import Request, Response
 
 from cloudevents.http import CloudEvent
@@ -26,6 +27,6 @@ def watch_gmail(request: Request) -> Response:
     return functions.handle_watch_gmail(request)
 
 
-@functions_framework.http
-def create_user(request: Request) -> Response:
-    return functions.handle_create_user(request)
+@identity_fn.before_user_created(region="europe-west2", max_instances=10)
+def create_user(event: identity_fn.AuthBlockingEvent) -> None:
+    functions.handle_create_user(event)

@@ -1,0 +1,19 @@
+{
+	"functions": [
+		{
+			"source": "./",
+			"codebase": "default",
+			"ignore": [
+				"firebase.json",
+				"**/venv/**",
+				"**/.**",
+				"**/__pycache**",
+				"**/deploy**",
+				"**/migrate.py",
+				"**/database/*",
+				"firebase-debug.log",
+				"firebase-debug.*.log"
+			]
+		}
+	]
+}
