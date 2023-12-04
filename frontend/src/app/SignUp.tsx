@@ -1,25 +1,21 @@
 'use client'
 import { Button } from '@/components/ui/button'
 import { MouseEvent } from 'react'
-import { createBrowserClient } from '@supabase/ssr'
 import Google from '@/components/icons/Google'
-
-
-const supabase = createBrowserClient(
-	process.env.NEXT_PUBLIC_SUPABASE_URL!,
-	process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-)
-
-async function handleClick(e: MouseEvent) {
-    await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-            redirectTo: 'http://localhost:3000/auth/callback?next=/onboarding',
-        },
-    })
-}
+import useFirebase from '@/hooks/useFirebase'
+import { signInWithPopup } from 'firebase/auth'
 
 export default function SignUp() {
+    const { auth, provider } = useFirebase()
+
+    async function handleClick(e: MouseEvent) {
+	    try {
+		    const result = await signInWithPopup(auth, provider)
+	        console.log('result', result)
+	    } catch (err) {
+	        console.log(err)
+	    }
+    }
 	
     return (
         <Button
