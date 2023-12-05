@@ -11,6 +11,6 @@ To try the private-alpha, [send me an email](mailto:hey@jayseejay.com)
 
 - [x] Sync Gmail inbox
 - [x] Subscribe to future changes to mailbox
-- [ ] Sign up page / onboarding flow (#in-progress)
+- [ ] Sign up page / onboarding flow (in-progress)
 - [ ] RAG to add context of other emails to drafts
 - [ ] Add tone of voice to drafts through fine-tuning
